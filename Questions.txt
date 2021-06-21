@@ -1,0 +1,23 @@
+1- Idade
+2- Sexo
+3- Com que frequência joga videojogos? 1)- "Guardo tempo no meu horário para jogar" 2)- "Jogo ocasionalmente" 3)- "Raramente jogo"
+4- Quão familiarizado está com jogos do tipo aventura 2D, como por exemplo os antigos jogos Zelda ou Pokemon? 1)- "Gosto e já joguei / vi outros jogarem muitas vezes" 2)- "Não me é familiar ou não tenho opinião formada" 3)- "Não gosto desse tipo de jogo"
+5- Ao jogar um jogo de aventura, o que é mais importante para si? 1)- "Derrotar todos os inimigos que encontro" 2)- "Chegar ao objectivo final o mais rápido possível" 3)- "Explorar novos locais" 4)- "Melhorar o equipamento da minha personagem"
+6 - NASA 1
+7 - NASA 2
+8 - NASA 3
+9 - NASA 4
+10 - NASA 5
+11 - NASA 6
+12 - NASA 1
+13 - NASA 2
+14 - NASA 3
+15 - NASA 4
+16 - NASA 5
+17 - NASA 6
+18 - NASA 1
+19 - NASA 2
+20 - NASA 3
+21 - NASA 4
+22 - NASA 5
+23 - NASA 6
