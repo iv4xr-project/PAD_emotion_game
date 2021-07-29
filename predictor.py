@@ -88,7 +88,7 @@ def new_get_processed_data(input_path, output_file, slice_number):
 
 		if (my_output[i + slice_number][0] - my_output[i][0]) > 0:  
 
-			forest_output[i] = 2
+			forest_output[i] = 1#2
 			neural_output[i][2] = 1
 
 
@@ -99,7 +99,7 @@ def new_get_processed_data(input_path, output_file, slice_number):
 
 		else:
 
-			forest_output[i] = 1
+			forest_output[i] = 0#1
 			neural_output[i][1] = 1
 
 
@@ -745,7 +745,7 @@ def binary_neural_trainer(slice_number, balance_data):
 
 		model = Sequential([
 			InputLayer(input_shape = (23,)),
-			Dense(23, activation='tanh'),
+			Dense(23, activation='relu'),
 			Dense(23, activation='relu'),
 			Dense(23, activation='relu'),
 			Dense(1, activation='sigmoid')
@@ -779,6 +779,9 @@ def binary_neural_trainer(slice_number, balance_data):
 			prov_data, prov_bin_out, prov_out = new_get_processed_data(training_data_list[i], training_output_list[i], slice_number)
 			my_data = np.concatenate((my_data, prov_data), axis=0)
 			binary_output = np.concatenate((binary_output, prov_bin_out), axis=0)
+
+		for bina in binary_output:
+			print(bina)
 
 
 		balanced_my_data, balanced_my_output = sm.fit_resample(my_data, binary_output)
