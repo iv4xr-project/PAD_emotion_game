@@ -520,150 +520,173 @@ def cross_evaluate(slice_number):
 
 
 
-def neural_trainer():
+def neural_trainer(slice_number, balance_data):
+
+	dimensions = ["Arousal", "Pleasure", "Dominance"]
 
 
-	my_data_list = sorted(glob.glob("./Traces/Trainers/Perceptor*.txt"))
+	print_list = [[], [], []]
 
-	my_output_list = sorted(glob.glob("./Traces/Trainers/Fader*.txt"))
+	print_counter = 0
 
-	rangy = len(my_data_list)
 
-	mse_sum = 0 
-	negative_per_sum = 0
-	positive_per_sum = 0
-	correct_pol_sum = 0
-	forgiving_pol_sum = 0
-
-	for k in range(rangy):
-
-		model = Sequential([
-			InputLayer(input_shape = (20,)),
-			Dense(80, activation='tanh'),
-			Dense(30, activation='tanh'),
-			Dense(10, activation='tanh'),
-			Dense(3, activation='softmax')
-			])
-
-		model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
-
-		es = EarlyStopping(patience=100)
+	sm = SMOTE(random_state=42)
+	#sm = SVMSMOTE(random_state=42)
+	#sm = BorderlineSMOTE(random_state=42)
+	#sm = KMeansSMOTE(random_state=42)
+	#sm = RandomOverSampler(random_state=42)
+	#sm = ADASYN(random_state=42)
+	#sm = RandomUnderSampler(random_state=42)
 
 
 
 
-		prediction_data_list = [my_data_list[k]]
-		prediction_output_list = [my_output_list[k]]
+	print("Slice Number: ", slice_number)
 
-		my_data_list = np.delete(my_data_list, k, 0)
-		my_output_list = np.delete(my_output_list, k, 0)
+	print("Balancing: ", balance_data)
 
 
 
 
-		# print("3:")
-		# print(my_data)
 
+	print_list = [[], [], []]
 
-		my_data, forest_output, my_output = new_get_processed_data(my_data_list[0], my_output_list[0])
-
-		for i in range(1, len(my_data_list)):
-
-			prov_data, forest_out, prov_out = new_get_processed_data(my_data_list[i], my_output_list[i])
-			my_data = np.concatenate((my_data, prov_data), axis=0)
-			my_output = np.concatenate((my_output, prov_out), axis=0)
-
-
-		print(my_output)
-
-		exit()
-
-
-		model.fit(my_data, my_output, epochs = 1000, batch_size = 128, validation_split = 0.1, callbacks=[es], shuffle=True)
+	print_counter = 0
 
 
 
+	for dim in dimensions:
 
-		#Predicting
-
-		my_data, forest_output, my_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0])
-
-		prediction = model.predict(my_data)
+		print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
 
 
-		total_number = 0
-		right_polarity_number = 0
-		positive_number = 0
-		negative_number = 0
-		right_polarity_forgiving = 0
+		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
 
-		for i in range(len(prediction)):
-			print(str(i) + ": " + str(prediction[i]) + "->" + str(my_output[i]))
-			print(abs(prediction[i] - my_output[i]))
-			total_number += 1
-			if ((prediction[i] <= 0) and (my_output[i] <= 0)) or ((prediction[i] > 0) and (my_output[i] > 0)):
-				right_polarity_number += 1
-				right_polarity_forgiving += 1
-			elif (abs(prediction[i] - my_output[i]) <= 1):
-				right_polarity_forgiving += 1
-			if my_output[i] <= 0:
-				negative_number += 1
-			if my_output[i] > 0:
-				positive_number += 1
+		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
 
-			print("Actual:")
-			print(right_polarity_number)
-			print("Forgiving:")
-			print(right_polarity_forgiving)
+		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+
+
+		rangy = len(my_data_list)
+
+		dim_accuracy = 0
+
+		total_accuracy = 0
+
+		sum_confusion_matrix = np.zeros((3,3))
+
+		for k in range(rangy):
+
+			model = Sequential([
+				InputLayer(input_shape = (23,)),
+				Dense(100, activation='relu'),
+				Dense(100, activation='relu'),
+				Dense(100, activation='relu'),
+				Dense(100, activation='relu'),
+				Dense(100, activation='relu'),
+				Dense(3, activation='softmax')
+				])
+
+			model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
+
+			es = EarlyStopping(patience=100)
 
 
 
 
-		# print("PREDICTION:\n\n")
-		# print(prediction)
-		# print("\n\n")
+			prediction_data_list = [my_data_list[k]]
+			prediction_output_list = [my_output_list[k]]
 
-		# print("REAL OUTPUT:\n\n")
-		# print(my_output)
-		# print("\n\n")
-
-		print("\nMEAN SQUARED ERROR OF PREDICTION:")
-		mse = tf.keras.losses.MeanSquaredError()
-		mse_result = mse(my_output, prediction).numpy()
-		print(mse_result)
-		mse_sum += mse_result
-		print("\nPERCENTAGE OF ALL NEGATIVE:")
-		print(negative_number/total_number * 100)
-		negative_per_sum += negative_number/total_number * 100
-		print("\nPERCENTAGE OF ALL POSITIVE:")
-		print(positive_number/total_number * 100)
-		positive_per_sum += positive_number/total_number * 100
-		print("\nPERCENTAGE OF CORRECT GRADIENT RESULTS:")
-		print(right_polarity_number/total_number * 100)
-		correct_pol_sum += right_polarity_number/total_number * 100
-		print("\nFORGIVING PERCENTAGE OF CORRECT GRADIENT RESULTS:")
-		print(right_polarity_forgiving/total_number * 100)
-		forgiving_pol_sum += right_polarity_forgiving/total_number * 100
+			my_data_list = np.delete(my_data_list, k, 0)
+			my_output_list = np.delete(my_output_list, k, 0)
 
 
-		my_data_list = sorted(glob.glob("./Traces/Trainers/Perceptor*.txt"))
-
-		my_output_list = sorted(glob.glob("./Traces/Trainers/Fader*.txt"))
 
 
-	print("\n\n-----> FINAL AVERAGED RESULTS:\n")
+			# print("3:")
+			# print(my_data)
 
 
-	print("\nMEAN SQUARED ERROR OF PREDICTION:")
-	print(mse_sum/rangy)
-	print("\nPERCENTAGE OF ALL NEGATIVE:")
-	print(negative_per_sum/rangy)
-	print("\nPERCENTAGE OF ALL POSITIVE:")
-	print(positive_per_sum/rangy)
-	print("\nPERCENTAGE OF CORRECT GRADIENT RESULTS:")
-	print(correct_pol_sum/rangy)
-	print("\nFORGIVING PERCENTAGE OF CORRECT GRADIENT RESULTS:")
-	print(forgiving_pol_sum/rangy)
+			my_data, forest_output, my_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
+
+			for i in range(1, len(my_data_list)):
+
+				prov_data, forest_out, prov_out = new_get_processed_data(my_data_list[i], my_output_list[i], slice_number)
+				my_data = np.concatenate((my_data, prov_data), axis=0)
+				my_output = np.concatenate((my_output, prov_out), axis=0)
+
+			balanced_my_data, balanced_my_output = sm.fit_resample(my_data, my_output)
+
+			model.fit(balanced_my_data, balanced_my_output, epochs = 100, batch_size = 128, validation_split = 0.2, callbacks=[es], shuffle=True)
+
+
+
+			
+
+			#Predicting
+
+			my_data, forest_output, my_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
+
+			prediction = model.predict(my_data)
+
+
+			p = np.zeros_like(prediction)
+			p[np.arange(len(prediction)), prediction.argmax(1)] = 1
+
+
+			acc = accuracy_score(my_output, p)
+
+			conf_mat = confusion_matrix(my_output.argmax(axis=1), p.argmax(axis=1))
+
+
+
+			print("Accuracy: ", acc)
+
+			print(conf_mat)
+
+
+
+
+			total_accuracy += acc
+
+			sum_confusion_matrix = sum_confusion_matrix + conf_mat
+
+			dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+			dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+
+			
+			
+
+
+
+
+		print_list[print_counter].append("\n\n\n\n-----> " + dim)
+
+
+		print_list[print_counter].append("\n\n Accuracy:")
+
+
+		print_list[print_counter].append(total_accuracy/rangy)
+
+
+		print_list[print_counter].append("\n\n Confusion Matrix:")
+
+
+		print_list[print_counter].append(sum_confusion_matrix/rangy)
+		
+
+
+		print_counter += 1
+
+
+	#The final printing
+
+	for i in range(3):
+		for text in print_list[i]:
+			print(text)
 
 
 def new_leave_one_out(slice_number, balance_data):
@@ -1211,7 +1234,7 @@ slice_number = 8*5
 balance_data = True
 
 
-neural_trainer()
+neural_trainer(slice_number, balance_data)
 
 #number_crawlwer()
 
