@@ -2,6 +2,7 @@ import pygame
 import time
 import math
 import random
+import numpy as np
 from datetime import datetime
 import os
 import smtplib
@@ -10,6 +11,8 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import screen_messages
+import glob
+import predictor
 
 
 def get_center(sprite):
@@ -87,7 +90,7 @@ class Follower(pygame.sprite.Sprite):
 
 			self.rect.y = self.y_pos
 
-			self.world.player.hp += self.hp_provided
+			#self.world.player.hp += self.hp_provided
 
 		for weapon in self.world.weapon_group:
 			if weapon.is_collided_with(self):
@@ -335,7 +338,7 @@ class RockWall(Tile):
 
 		number = random.randint(0,3)
 		image_name = "Images/20-20_rock_wall" + str(number) + ".png"
-		self.image = pygame.image.load(image_name)
+		self.image = pygame.image.load(image_name).convert_alpha()
 		x_size, y_size = self.image.get_rect().size
 		self.x_size = x_size
 		self.y_size = y_size
@@ -348,15 +351,58 @@ class RockWall(Tile):
 
 
 
+class Polygon(pygame.sprite.Sprite):
+
+	def __init__(self, world, points, number):
+
+		pygame.sprite.Sprite.__init__(self)
+		self.world = world
+		self.rect = (0,0)
+
+		self.number = number
+
+		self.points = points
+
+	
+		self.image = pygame.Surface((self.world.screen_width, self.world.screen_height), pygame.SRCALPHA)
+
+		#self.image.set_alpha(0)
+
+		pygame.draw.polygon(self.image, (random.randint(0,255), random.randint(0,255), random.randint(0,255)), points)
+
+		self.image = self.image.convert_alpha()
+
+		self.mask = pygame.mask.from_surface(self.image)
+
+
+	def update(self):
+		pass
+
+
+
+	def draw(self, screen):
+		screen.blit(self.image, (0,0))
+
+
+
+
+
 class Perceptor(object):
 
-	def __init__(self, world, frequency, date_time, map_name):
+	def __init__(self, world, frequency, date_time, map_name, num_directions):
 
 		self.world = world
 		self.player = world.player
 		self.frequency = frequency
+		self.num_directions = num_directions
 
 		self.fader_can_write = False
+
+		self.polygon_group = pygame.sprite.Group()
+
+		self.create_polygons()
+
+		
 
 
 		self.distance_closest_enemy = float('inf')
@@ -376,12 +422,15 @@ class Perceptor(object):
 		self.seconds_since_food_item = 0
 		self.seconds_since_money = 0
 
+		self.max_distance = abs(math.sqrt((self.world.screen_width/2) ** 2 + (self.world.screen_height/2) ** 2))
+
 		self.hp = self.player.hp
 		self.kills = 0
 		self.money = 0
 		self.damage_done = 0
 
 		self.to_save_buffer = []
+		self.current_perceptions = []
 
 
 		self.last_enemy_time = time.time()
@@ -394,7 +443,42 @@ class Perceptor(object):
 		self.save_file = open(file_name,"w+")
 
 
+	def create_polygons(self):
+
+		if self.num_directions % 4 != 0:
+			print("The variable num_directions must be divisible by 4!")
+			exit()
+
+		#Draw top polygons
+		for i in range(int(self.num_directions/4)):
+			self.polygon_group.add(Polygon(self.world, ((i*(self.world.screen_width/(self.num_directions/4)),0), ((i+1)*(self.world.screen_width/(self.num_directions/4)),0), get_center(self.player)), ((self.num_directions/4)/2 + i) ))
+
+		#Draw left polygons
+		for i in range(int(self.num_directions/4)):
+
+			if i < (self.num_directions/4)/2:
+				self.polygon_group.add(Polygon(self.world, ((0, self.world.screen_height - i*(self.world.screen_height/(self.num_directions/4))), (0, self.world.screen_height - (i+1)*(self.world.screen_height/(self.num_directions/4))), get_center(self.player)), ( self.num_directions*3/4 + (self.num_directions/4)/2 + i) ) )
+			else:
+				self.polygon_group.add(Polygon(self.world, ((0, self.world.screen_height - i*(self.world.screen_height/(self.num_directions/4))), (0, self.world.screen_height - (i+1)*(self.world.screen_height/(self.num_directions/4))), get_center(self.player)), (i - (self.num_directions/4)/2 ) ))
+
+
+		#Draw right polygons
+		for i in range(int(self.num_directions/4)):
+			self.polygon_group.add(Polygon(self.world, ((self.world.screen_width, i*(self.world.screen_height/(self.num_directions/4))), (self.world.screen_width, (i+1)*(self.world.screen_height/(self.num_directions/4))), get_center(self.player)), ( self.num_directions/4 + (self.num_directions/4)/2 + i)))
+
+		#Draw bottom polygons
+		for i in range(int(self.num_directions/4)):
+			self.polygon_group.add(Polygon(self.world, ((self.world.screen_width - i*(self.world.screen_width/(self.num_directions/4)), self.world.screen_width), (self.world.screen_width - (i+1)*(self.world.screen_width/(self.num_directions/4)), self.world.screen_width), get_center(self.player)), ( (self.num_directions*2)/4 + (self.num_directions/4)/2 + i)))
+
+
+
+
+
+
+
 	def update(self):
+
+		self.current_perceptions = []
 
 		if (time.time() - self.last_update) > 1/self.frequency:
 
@@ -472,31 +556,108 @@ class Perceptor(object):
 
 			#save data
 
-			self.to_save_buffer.append(str(self.distance_closest_enemy) + "_")  #
-			self.to_save_buffer.append(str(self.distance_closest_food_item) + "_")  #
-			self.to_save_buffer.append(str(self.distance_closest_money) + "_")
-			self.to_save_buffer.append(str(self.number_enemies_view) + "_")  #
-			self.to_save_buffer.append(str(self.number_food_item_view) + "_")  #
-			self.to_save_buffer.append(str(self.number_money_view) + "_")  #
-			self.to_save_buffer.append(str(self.sum_enemy_values) + "_") 
-			self.to_save_buffer.append(str(self.sum_food_item_values) + "_") 
-			self.to_save_buffer.append(str(self.sum_money_values) + "_")  
-			self.to_save_buffer.append(str(self.sum_value_slash_distance_enemies) + "_")  #
-			self.to_save_buffer.append(str(self.sum_value_slash_distance_food_item) + "_")  #
-			self.to_save_buffer.append(str(self.sum_value_slash_distance_money) + "_")
-			self.to_save_buffer.append(str(self.seconds_since_enemy) + "_")  #
-			self.to_save_buffer.append(str(self.seconds_since_food_item) + "_")  #
-			self.to_save_buffer.append(str(self.seconds_since_money) + "_")  #
-			self.to_save_buffer.append(str(self.distance_to_objective) + "_")  #
-			self.to_save_buffer.append(str(self.hp) + "_")  #
-			self.to_save_buffer.append(str(self.money) + "_")  #
-			self.to_save_buffer.append(str(self.kills) + "_")  #
-			self.to_save_buffer.append(str(self.damage_done))  # 
-			self.to_save_buffer.append("\n")
+			self.current_perceptions.append(str(self.distance_closest_enemy) + "_")  #
+			self.current_perceptions.append(str(self.distance_closest_food_item) + "_")  #
+			self.current_perceptions.append(str(self.distance_closest_money) + "_")
+			self.current_perceptions.append(str(self.number_enemies_view) + "_")  #
+			self.current_perceptions.append(str(self.number_food_item_view) + "_")  #
+			self.current_perceptions.append(str(self.number_money_view) + "_")  #
+			self.current_perceptions.append(str(self.sum_enemy_values) + "_") 
+			self.current_perceptions.append(str(self.sum_food_item_values) + "_") 
+			self.current_perceptions.append(str(self.sum_money_values) + "_")  
+			self.current_perceptions.append(str(self.sum_value_slash_distance_enemies) + "_")  #
+			self.current_perceptions.append(str(self.sum_value_slash_distance_food_item) + "_")  #
+			self.current_perceptions.append(str(self.sum_value_slash_distance_money) + "_")
+			self.current_perceptions.append(str(self.seconds_since_enemy) + "_")  #
+			self.current_perceptions.append(str(self.seconds_since_food_item) + "_")  #
+			self.current_perceptions.append(str(self.seconds_since_money) + "_")  #
+			self.current_perceptions.append(str(self.distance_to_objective) + "_")  #
+			self.current_perceptions.append(str(self.hp) + "_")  #
+			self.current_perceptions.append(str(self.money) + "_")  #
+			self.current_perceptions.append(str(self.kills) + "_")  #
+			self.current_perceptions.append(str(self.damage_done) + "_")  # 
+			
+
+
+			#Neutrals
+			#print("Neutrals")
+			neutral_vec = self.get_perception_vec(self.world.collide_group)
+			self.current_perceptions.append(str(neutral_vec.tolist())+ "_")
+
+			#Desirables
+			#print("Desirables")
+			desirable_vec = self.get_perception_vec(self.world.money_group)
+			self.current_perceptions.append(str(desirable_vec.tolist()) + "_")
+
+			#Conditionals 
+			#print("Conditionals")
+			conditional_vec = self.get_perception_vec(self.world.food_group)
+			self.current_perceptions.append(str(conditional_vec.tolist()) + "_")
+
+			#Enemies
+			#print("Enemies")
+			enemies_vec = self.get_perception_vec(self.world.enemy_group)
+			self.current_perceptions.append(str(enemies_vec.tolist()) + "_")
+
+			#Objective
+			#print("Objectives")
+			objective_vec = self.get_perception_vec(self.world.flower_group)
+			self.current_perceptions.append(str(objective_vec.tolist()))
+
+			self.current_perceptions.append("\n")
+
 
 			self.last_update = time.time()
 
+
 			self.fader_can_write = True
+
+			self.to_save_buffer.extend(self.current_perceptions)
+
+	def get_perception_vec(self, relevant_group):
+
+		myX, myY = get_center(self.player)
+
+		dist_q_array = np.full((1, self.num_directions), 0)
+
+		for poppy in relevant_group:
+
+			# Checking if inside screen
+			if (poppy.rect.x > -poppy.x_size) and (poppy.rect.x < self.world.screen_width) and (poppy.rect.y > -poppy.y_size) and (poppy.rect.y < self.world.screen_height):
+
+				targetX, targetY = get_center(poppy)
+
+
+				collided = pygame.sprite.spritecollide(poppy, self.polygon_group, False, pygame.sprite.collide_mask)
+
+				#print("Have collided with:")
+				for polly in collided:
+					#print(polly.number)
+					distance = math.hypot(targetX - myX, targetY - myY)
+					
+					if abs(self.max_distance - distance) > dist_q_array[0][int(polly.number)]:
+
+							dist_q_array[0][int(polly.number)] = abs(self.max_distance - distance)
+						
+
+				# myradians = math.atan2(targetY - myY, targetX - myX)
+				# # print("My radians: ", myradians)
+				# pos_radians = myradians + math.pi
+				# quadrant = int(pos_radians // ((2 * math.pi) / self.num_directions))
+				# if quadrant == self.num_directions:
+				# 	quadrant -= 1
+				# distance = math.hypot(targetX - myX, targetY - myY)
+				# # print(distance)
+
+				# if abs(distance) <= self.max_distance:
+
+				# 	if abs(self.max_distance - distance) > dist_q_array[0][quadrant]:
+
+				# 		dist_q_array[0][quadrant] = abs(self.max_distance - distance)
+				
+			# print(type(poppy).__name__)
+		#print(dist_q_array)
+		return dist_q_array
 
 
 
@@ -909,6 +1070,9 @@ class World(object):
 		self.weapon_group.draw(self.screen)
 		self.player.draw(self.screen)
 
+
+
+
 		hp_rend = self.font.render("HP: " + str(self.player.hp), 1, (0,0,0))
 		self.screen.blit(hp_rend, (10, 10))
 
@@ -1132,7 +1296,7 @@ def set_sword_parameters(world, last_sword_parameters):
 
 
 
-def playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, date_time):
+def playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, date_time, num_directions):
 
 
 	#variable to control the main loop
@@ -1156,7 +1320,7 @@ def playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, m
 
 	
 	
-	perceptor = Perceptor(world, 8, date_time, map_name)
+	perceptor = Perceptor(world, 8, date_time, map_name, num_directions)
 
 	file_path = "Traces/Actions_" + map_name + "_" + date_time + ".txt"
 
@@ -1185,7 +1349,9 @@ def playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, m
 
 		world.update()
 		perceptor.update()
+		#perceptor.polygon_group.draw(world.screen)
 		world.render()
+		
 		pygame.display.flip()
 		#perceptor.render()
 
@@ -1416,7 +1582,7 @@ def playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, m
 
 
 
-def fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, chosen_dimension):
+def fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, chosen_dimension, num_directions):
 
 
 	#variable to control the main loop
@@ -1443,7 +1609,7 @@ def fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_f
 	player = Player(world.screen_width/2 -15, world.screen_height/2 -15, world)
 	world.player = player
 
-	perceptor = Perceptor(world, 8, date_time, map_name)
+	perceptor = Perceptor(world, 8, date_time, map_name, num_directions)
 
 
 	to_save_buffer = []
@@ -1554,8 +1720,8 @@ def fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_f
 
 			if event.type == pygame.KEYDOWN:
 			
-			  if event.key == ord(' '):
-			  	waiting = False
+				if event.key == ord(' '):
+					waiting = False
 
 
 	last_sword_parameters = [12, -15, 0]
@@ -1877,6 +2043,193 @@ def fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_f
 
 
 
+def replay_from_trace(file_location, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions):
+
+
+	#variable to control the main loop
+	running = True
+
+
+	date_time = file_location[41:(len(file_location)-4)]
+
+	read_path = file_location
+
+	world = World(map_height, map_width, 20, map_name, small_fontzy)
+
+	player = Player(world.screen_width/2 -15, world.screen_height/2 -15, world)
+	world.player = player
+
+	perceptor = Perceptor(world, math.inf, date_time, map_name, num_directions)
+
+	to_save_buffer = []
+
+	world.render()
+
+
+	player_dead = False
+	player_won = False
+
+	textfile = open(read_path, 'r')
+
+
+
+	s = pygame.Surface((world.screen_width, world.screen_height)) 
+	s.set_alpha(155)        
+	s.fill((255,255,255))          
+	world.screen.blit(s, (0,0)) 
+
+
+	pygame.display.flip()
+
+
+	last_sword_parameters = [12, -15, 0]
+
+	world.timer = time.time()
+
+
+	while running:
+
+		key_press_list = textfile.readline()
+
+		if len(key_press_list) == 0:
+			
+			running = False
+			break
+
+		#Transformation into list
+		key_press_list = key_press_list.replace(']', '')
+		key_press_list = key_press_list.replace('[', '')
+		key_press_list = key_press_list.replace('\'', '')
+		key_press_list = key_press_list.replace('\n', '')
+		key_press_list = key_press_list.split(", ")
+
+
+
+
+		last_update = time.time()
+
+
+		world.update()
+		perceptor.update()
+
+		world.render()
+		#perceptor.polygon_group.draw(world.screen)
+		pygame.display.flip()
+
+
+		#handle death
+		if world.player.hp <= 0:
+			
+			
+			world.player.hp = 0
+
+			if player_dead == False:
+				death_time = time.time()
+
+			player_dead = True
+
+			s = pygame.Surface((world.screen_width, world.screen_height))
+			s.set_alpha(155)         
+			s.fill((255,255,255))        
+			world.screen.blit(s, (0,0)) 
+
+			pygame.display.flip()
+
+			running = False
+			break
+
+		for flower in world.flower_group:
+
+			if player.is_collided_with(flower):
+
+				player_won = True
+
+				s = pygame.Surface((world.screen_width, world.screen_height))  
+				s.set_alpha(155)              
+				s.fill((255,255,255))          
+				world.screen.blit(s, (0,0)) 
+
+				pygame.display.flip()
+				
+				running = False
+				break
+
+
+
+
+		last_sword_parameters = set_sword_parameters(world, last_sword_parameters)	
+
+		if len(key_press_list) == 0:
+			
+			running = False
+			break
+
+
+		if len(key_press_list) > 1:
+
+			del key_press_list[0]
+
+			for event in key_press_list:
+
+				if event == ' ':
+					handle_key_down(world, ord(' '), last_sword_parameters)
+
+				elif event == 'wd':
+					handle_key_down(world, ord('w'), last_sword_parameters)
+
+				elif event == 'sd':
+					handle_key_down(world, ord('s'), last_sword_parameters)
+
+				elif event == 'ad':
+					handle_key_down(world, ord('a'), last_sword_parameters)
+
+				elif event == 'dd':
+					handle_key_down(world, ord('d'), last_sword_parameters)
+				elif event == 'wu':
+					handle_key_up(world, ord('w'), last_sword_parameters)
+
+				elif event == 'su':
+					handle_key_up(world, ord('s'), last_sword_parameters)
+
+				elif event == 'au':
+					handle_key_up(world, ord('a'), last_sword_parameters)
+
+				elif event == 'du':
+					handle_key_up(world, ord('d'), last_sword_parameters)
+
+
+				#handle_key_down(world, event.key, last_sword_parameters)
+
+
+
+		# event handling, gets all event from the event queue
+		for event in pygame.event.get():
+
+			if event.type == pygame.QUIT:
+				running = False
+
+		
+
+		while ((time.time() - last_update) < frame_rate):
+			pass
+
+
+
+	perceptor.write_to_file()
+
+	textfile.close()
+
+	return
+
+
+
+
+
+
+
+
+
+
 def email_files(files_to_email, date_time):
 
 	mail_content = '''Hello,
@@ -1925,9 +2278,294 @@ def email_files(files_to_email, date_time):
 
 
 
+def play_with_pre_trained_model(trained_model_file, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions):
+
+
+	#variable to control the main loop
+	running = True
+
+	trained_model = predictor.load(trained_model_file)
+
+
+	world = World(map_height, map_width, 20, map_name, small_fontzy)
+
+	player = Player(world.screen_width/2 -15, world.screen_height/2 -15, world)
+	world.player = player
+
+	perceptor = Perceptor(world, math.inf, date_time, map_name, num_directions)
+
+	to_save_buffer = []
+
+	world.render()
+
+
+	player_dead = False
+	player_won = False
+
+	s = pygame.Surface((world.screen_width, world.screen_height)) 
+	s.set_alpha(155)        
+	s.fill((255,255,255))          
+	world.screen.blit(s, (0,0)) 
+
+
+	pygame.display.flip()
+
+
+	last_sword_parameters = [12, -15, 0]
+
+	world.timer = time.time()
+
+	n_avoidance = 0
+
+
+	while running:
+
+
+		last_update = time.time()
+
+
+		world.update()
+		perceptor.update()
+
+		world.render()
+		#perceptor.polygon_group.draw(world.screen)
+		pygame.display.flip()
+
+
+		#handle death
+		if world.player.hp <= 0:
+			
+			
+			world.player.hp = 0
+
+			if player_dead == False:
+				death_time = time.time()
+
+			player_dead = True
+
+			s = pygame.Surface((world.screen_width, world.screen_height))
+			s.set_alpha(155)         
+			s.fill((255,255,255))        
+			world.screen.blit(s, (0,0)) 
+
+			pygame.display.flip()
+
+			running = False
+			break
+
+		for flower in world.flower_group:
+
+			if player.is_collided_with(flower):
+
+				player_won = True
+
+				s = pygame.Surface((world.screen_width, world.screen_height))  
+				s.set_alpha(155)              
+				s.fill((255,255,255))          
+				world.screen.blit(s, (0,0)) 
+
+				pygame.display.flip()
+				
+				running = False
+				break
 
 
 
+
+		last_sword_parameters = set_sword_parameters(world, last_sword_parameters)	
+
+
+
+
+##########
+###########
+############  The model logic needs to be here
+		
+		perceptions = perceptor.current_perceptions
+
+		string_ver = ""
+
+		for percy_jackson in perceptions:
+			string_ver += percy_jackson
+
+		inputs = string_ver
+
+
+		action = predictor.behaviour_predict(inputs, trained_model)
+
+
+
+		print(string_ver)
+		print(action)
+
+		if action == 'n':
+			n_avoidance += 1
+		else:
+			n_avoidance = 0
+
+		if n_avoidance >= 30:
+			action = 'd'
+
+
+
+		if action == 'n':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+
+
+		elif action == ' ':
+
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'w':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+
+		elif action == 's':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 0
+
+		elif action == 'a':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+
+		elif action == 'd':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+
+		elif action == 'wa':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+
+		elif action == 'wd':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+
+		elif action == 'sa':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 2
+			world.shift_left = 0
+
+		elif action == 'sd':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 2
+
+		elif action == 'w ':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 's ':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'a ':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'd ':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'wa ':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'wd ':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'sa ':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 2
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'sd ':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 2
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		
+
+
+
+
+		for event in pygame.event.get():
+
+			if event.type == pygame.QUIT:
+				running = False
+
+		
+
+		while ((time.time() - last_update) < frame_rate):
+			pass
+
+
+
+	perceptor.write_to_file()
+
+
+	return
 
 
 
@@ -1954,9 +2592,6 @@ def main():
 	pygame.display.set_icon(logo)
 	pygame.display.set_caption("Flower Hunter")
 
-
-
-
 	files_to_email = ['student_number.txt']
 	
 
@@ -1976,9 +2611,8 @@ def main():
 
 	date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
 
-	questions_file_path = "Answers/Answers_" + date_time + ".txt"
-	files_to_email.append(questions_file_path)
-	questions_file = open(questions_file_path,"w+")
+
+	
 
 
 
@@ -1988,7 +2622,9 @@ def main():
 #																							   #
 ################################################################################################
 
-
+	# questions_file_path = "Answers/Answers_" + date_time + ".txt"
+	# files_to_email.append(questions_file_path)
+	# questions_file = open(questions_file_path,"w+")
 
 
 	# dimensions_list = ["prazer", "excitação", "dominância"]
@@ -2181,29 +2817,72 @@ def main():
 
 
 
-############################################
-#										   #
-#  Playing and annotating a single level   #
-#										   #
-############################################
+#############################################################################
+#										                                    #
+#  Uncomment the following lines for playing and annotating a single level  #
+#										                                    #
+#############################################################################
 
+	# num_directions = 100
+
+
+	# map_name = "Level3"
+
+	# chosen_dimension = "Arousal"
+
+	# file_path, pos_file_path = playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, date_time, num_directions)
+
+	# save_path = fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, chosen_dimension, num_directions)
+
+
+
+
+
+
+#################################################################################################################
+#								                                   		                                        #
+#        Uncomment the following lines for playing all generated traces in the "Generated_Traces" folder        #
+#                     (This will generate the perception traces in the "Traces" folder)                         #
+#										                                                                        #
+#################################################################################################################
+
+
+
+	# gen_traces = sorted(glob.glob("./Generated_Traces/*.txt"))
+
+	# num_directions = 100
+
+	# frame_rate = 0.0
+
+	# for genny in gen_traces:
+
+	# 	file_location = genny
+
+	# 	map_name = genny[34:40]
+
+	# 	replay_from_trace(file_location, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+
+#################################################################################################################
+#								                                   		                                        #
+#        Uncomment the following lines for playing with a previously trained behavioural model                  #
+#                                                                                                               #
+#										                                                                        #
+#################################################################################################################
 
 
 
 	map_name = "Level1"
 
-	chosen_dimension = "Arousal"
+	num_directions = 100
 
-	perceptor_file_path = "Traces/Perceptor_" + map_name + "_" + date_time + ".txt"
+	trained_model_file = 'trained_forest.pkl'
 
-	file_path, pos_file_path = playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, date_time)
 
-	save_path = fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, chosen_dimension)
-
+	play_with_pre_trained_model(trained_model_file, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
 
 
 
-			 
+
 			 
 # run the main function only if this module is executed as the main script
 # (if you import this as a module then nothing is executed)
