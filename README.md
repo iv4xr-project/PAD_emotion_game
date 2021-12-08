@@ -5,7 +5,7 @@ A simple 2-D game used to train emotional agents. In this repository can be foun
 
 To run the game, run the "infinite_game.py" file. One way to do so is to write "python3 infinite_game.py" on the command line while in the project's directory.
 
-The game is currently set to 
+
 
 ## The Collected Traces
 
