@@ -274,33 +274,3 @@ def probability_trace_generator(trace_lenght, file_name, probability_list):
 
 
 
-# action_array = file_to_actions_translator("First_Study/Arousal/Traces_Actions_Level3_26-04-2021_11-25-09_453.txt")
-
-# actions_to_file_translator(action_array, "Generated_Traces/Test1.txt")
-
-
-
-
-
-#random_trace_generator(500, "Gen1.txt")
-
-
-#probability_trace_generator(2000, "ProbGen1.txt", [1,2,1,9,2])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

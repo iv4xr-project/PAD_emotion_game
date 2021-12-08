@@ -13,6 +13,7 @@ from email import encoders
 import screen_messages
 import glob
 import predictor
+import rule_based_agents
 
 
 def get_center(sprite):
@@ -90,7 +91,7 @@ class Follower(pygame.sprite.Sprite):
 
 			self.rect.y = self.y_pos
 
-			#self.world.player.hp += self.hp_provided
+			self.world.player.hp += self.hp_provided
 
 		for weapon in self.world.weapon_group:
 			if weapon.is_collided_with(self):
@@ -201,6 +202,8 @@ class Flower(pygame.sprite.Sprite):
 		x_size, y_size = self.image.get_rect().size
 		self.x_size = x_size
 		self.y_size = y_size
+		self.initial_x = x_pos
+		self.initial_y = y_pos
 		self.rect = pygame.Rect(x_pos, y_pos, x_size, y_size)
 		self.mask = pygame.mask.from_surface(self.image)
 
@@ -228,6 +231,8 @@ class Money(pygame.sprite.Sprite):
 		x_size, y_size = self.image.get_rect().size
 		self.x_size = x_size
 		self.y_size = y_size
+		self.initial_x = x_pos
+		self.initial_y = y_pos
 		self.rect = pygame.Rect(x_pos + 4, y_pos, x_size, y_size)
 		self.mask = pygame.mask.from_surface(self.image)
 
@@ -265,6 +270,8 @@ class RiceCake(pygame.sprite.Sprite):
 		x_size, y_size = self.image.get_rect().size
 		self.x_size = x_size
 		self.y_size = y_size
+		self.initial_x = x_pos
+		self.initial_y = y_pos
 		self.rect = pygame.Rect(x_pos, y_pos, x_size, y_size)
 		self.mask = pygame.mask.from_surface(self.image)
 
@@ -299,6 +306,8 @@ class Tile(pygame.sprite.Sprite):
 		x_size, y_size = self.image.get_rect().size
 		self.x_size = x_size
 		self.y_size = y_size
+		self.initial_x = x_pos
+		self.initial_y = y_pos
 		self.rect = pygame.Rect(x_pos, y_pos, x_size, y_size)
 		self.mask = pygame.mask.from_surface(self.image)
 
@@ -322,6 +331,8 @@ class GrassTile(Tile):
 		image_name = "Images/20-20_grass_square" + str(number) + ".png"
 		self.image = pygame.image.load(image_name)
 		x_size, y_size = self.image.get_rect().size
+		self.initial_x = x_pos
+		self.initial_y = y_pos
 		self.x_size = x_size
 		self.y_size = y_size
 		self.rect = pygame.Rect(x_pos, y_pos, x_size, y_size)
@@ -342,6 +353,8 @@ class RockWall(Tile):
 		x_size, y_size = self.image.get_rect().size
 		self.x_size = x_size
 		self.y_size = y_size
+		self.initial_x = x_pos
+		self.initial_y = y_pos
 		self.rect = pygame.Rect(x_pos, y_pos, x_size, y_size)
 		self.mask = pygame.mask.from_surface(self.image)
 
@@ -382,6 +395,30 @@ class Polygon(pygame.sprite.Sprite):
 
 	def draw(self, screen):
 		screen.blit(self.image, (0,0))
+
+
+
+
+class Iterator_Square(pygame.sprite.Sprite):
+
+	def __init__(self, world, granularity):
+
+		self.world = world
+		self.granularity = granularity
+
+		self.rect = pygame.Rect(0, 0, self.granularity, self.granularity)
+
+		self.image = pygame.Surface((self.granularity, self.granularity), pygame.SRCALPHA)
+
+		pygame.draw.rect(self.image, (random.randint(0,255), random.randint(0,255), random.randint(0,255)), self.rect)
+
+		self.image = self.image.convert_alpha()
+
+		self.mask = pygame.mask.from_surface(self.image)
+
+	def draw(self, screen):
+		screen.blit(self.image, (self.rect.x, self.rect.y))
+
 
 
 
@@ -812,6 +849,8 @@ class World(object):
 		self.font = small_fontzy
 		self.last_food = time.time()
 
+		self.iterator_square = Iterator_Square(self, 20)
+
 		
 
 
@@ -886,6 +925,13 @@ class World(object):
 				elif letter == "p":
 					player_x = column_count*self.tile_size
 					player_y = line_count*self.tile_size
+
+
+					# #To Remove
+					# self.playerx = column_count*self.tile_size
+					# self.playery = line_count*self.tile_size
+
+
 					tilly = GrassTile(column_count*self.tile_size, line_count*self.tile_size, self)
 					self.tile_group.add(tilly)
 
@@ -1036,6 +1082,17 @@ class World(object):
 			return False
 
 
+	def get_all_in_view(self, sprite_group):
+
+		in_view = []
+
+		for sprity in sprite_group:
+			if self.in_view(sprity):
+				in_view.append(sprity)
+
+		return in_view
+
+
 	def update(self):
 
 		self.key_press_list = []
@@ -1072,6 +1129,10 @@ class World(object):
 
 
 
+		self.iterator_square.draw(self.screen)
+
+
+
 
 		hp_rend = self.font.render("HP: " + str(self.player.hp), 1, (0,0,0))
 		self.screen.blit(hp_rend, (10, 10))
@@ -1084,6 +1145,16 @@ class World(object):
 
 		time_rend = self.font.render("Time: " + str(int(time.time() - self.timer)), 1, (0,0,0))
 		self.screen.blit(time_rend, (400, 10))
+
+
+############To Remove
+
+		# zoomed_screen = pygame.transform.smoothscale(self.screen, (1500, 1500))
+
+		# self.screen.blit(zoomed_screen, (0,0))
+
+
+
 
 
 
@@ -1333,6 +1404,7 @@ def playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, m
 	last_sword_parameters = [30, 12, 270]
 
 	world.timer = time.time()
+
 
 
 	# main loop
@@ -2575,6 +2647,281 @@ def play_with_pre_trained_model(trained_model_file, date_time, frame_rate, map_n
 
 
 
+def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions):
+
+
+	#variable to control the main loop
+	running = True
+
+
+	world = World(map_height, map_width, 20, map_name, small_fontzy)
+
+	player = Player(world.screen_width/2 -15, world.screen_height/2 -15, world)
+	world.player = player
+
+	perceptor = Perceptor(world, math.inf, date_time, map_name, num_directions)
+
+	world.perceptor = perceptor
+
+	agent = agent_type(world)
+
+	to_save_buffer = []
+
+	world.render()
+
+
+	player_dead = False
+	player_won = False
+
+	s = pygame.Surface((world.screen_width, world.screen_height)) 
+	s.set_alpha(155)        
+	s.fill((255,255,255))          
+	world.screen.blit(s, (0,0)) 
+
+
+	pygame.display.flip()
+
+
+	last_sword_parameters = [12, -15, 0]
+
+	world.timer = time.time()
+
+	n_avoidance = 0
+
+
+	while running:
+
+
+		last_update = time.time()
+
+
+		world.update()
+		perceptor.update()
+
+		world.render()
+		#perceptor.polygon_group.draw(world.screen)
+		pygame.display.flip()
+
+
+		#handle death
+		if world.player.hp <= 0:
+			
+			
+			world.player.hp = 0
+
+			if player_dead == False:
+				death_time = time.time()
+
+			player_dead = True
+
+			s = pygame.Surface((world.screen_width, world.screen_height))
+			s.set_alpha(155)         
+			s.fill((255,255,255))        
+			world.screen.blit(s, (0,0)) 
+
+			pygame.display.flip()
+
+			running = False
+			break
+
+		for flower in world.flower_group:
+
+			if player.is_collided_with(flower):
+
+				player_won = True
+
+				s = pygame.Surface((world.screen_width, world.screen_height))  
+				s.set_alpha(155)              
+				s.fill((255,255,255))          
+				world.screen.blit(s, (0,0)) 
+
+				pygame.display.flip()
+				
+				running = False
+				break
+
+
+
+
+		last_sword_parameters = set_sword_parameters(world, last_sword_parameters)	
+
+
+
+
+##########
+###########
+############  The model logic needs to be here
+		
+		perceptions = perceptor.current_perceptions
+
+
+		action = agent.getAction()
+
+		if action == 'n':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+
+
+		elif action == ' ':
+
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'w':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+
+		elif action == 's':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 0
+
+		elif action == 'a':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+
+		elif action == 'd':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+
+		elif action == 'wa':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+
+		elif action == 'wd':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+
+		elif action == 'sa':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 2
+			world.shift_left = 0
+
+		elif action == 'sd':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 2
+
+		elif action == 'w ':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 's ':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'a ':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'd ':
+			world.shift_down = 0
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'wa ':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 2
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'wd ':
+			world.shift_down = 2
+			world.shift_up = 0
+			world.shift_right = 0
+			world.shift_left = 2
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'sa ':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 2
+			world.shift_left = 0
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		elif action == 'sd ':
+			world.shift_down = 0
+			world.shift_up = 2
+			world.shift_right = 0
+			world.shift_left = 2
+			swordy = Sword(world.player.rect.x + last_sword_parameters[0], world.player.rect.y + last_sword_parameters[1], world, last_sword_parameters[2])
+			world.weapon_group.add(swordy)
+			world.all_group.add(swordy)
+
+		
+
+
+
+
+		for event in pygame.event.get():
+
+			if event.type == pygame.QUIT:
+				running = False
+
+		
+
+		while ((time.time() - last_update) < frame_rate):
+			pass
+
+
+
+	perceptor.write_to_file()
+
+
+	return
+
+
+
+
+
+
+
 
 
 
@@ -2598,7 +2945,7 @@ def main():
 	map_height = 600
 	map_width = 600
 
-	frame_rate = 0.05
+	frame_rate = 0.0
 
 	big_fontzy = pygame.font.Font(os.path.join("Fonts", 'MacondoSwashCaps.ttf'), 62)
 	medium_fontzy = pygame.font.Font(os.path.join("Fonts", 'MacondoSwashCaps.ttf'), 32)
@@ -2830,6 +3177,7 @@ def main():
 
 	# chosen_dimension = "Arousal"
 
+
 	# file_path, pos_file_path = playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, date_time, num_directions)
 
 	# save_path = fader_replay(date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, chosen_dimension, num_directions)
@@ -2871,14 +3219,33 @@ def main():
 
 
 
-	map_name = "Level1"
+	# map_name = "Level1"
 
-	num_directions = 100
+	# num_directions = 100
 
-	trained_model_file = 'trained_forest.pkl'
+	# trained_model_file = 'trained_forest.pkl'
 
 
-	play_with_pre_trained_model(trained_model_file, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+	# play_with_pre_trained_model(trained_model_file, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+
+#################################################################################################################
+#								                                   		                                        #
+#                     Uncomment the following lines for playing with an agent                                   #
+#                                                                                                               #
+#										                                                                        #
+#################################################################################################################
+
+
+	map_name = "Level2"
+
+	num_directions = 200 #Needs to be divisable by 8
+
+	agent_type = rule_based_agents.ParameterAgent
+
+
+
+	play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+
 
 
 

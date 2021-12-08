@@ -35,6 +35,8 @@ from sklearn.utils import shuffle
 from collections import Counter
 import trace_generator
 from joblib import dump, load
+from numpy import inf
+
 
 
 
@@ -49,7 +51,7 @@ def new_get_processed_data(input_path, output_file, slice_number):
 	my_output = np.genfromtxt(output_file)
 	if len(my_data) > len(my_output):
 		my_data = my_data[:-1]
-	seconds_since = my_data[:, [12, 13, 14]]
+	seconds_since = my_data[:, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]]   #[12, 13, 14]
 	my_data = my_data[:, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]]
 
 	my_output = my_output[..., None]
@@ -68,13 +70,15 @@ def new_get_processed_data(input_path, output_file, slice_number):
 			else:
 				new_data[i][j] = my_data[i + slice_number][j] - my_data[i][j]
 
+	seconds_since[seconds_since == inf] = 425 #max distance from the player in a 600x600 map
+
 	new_seconds =np.zeros((int(len(seconds_since) - slice_number), len(seconds_since[0])))
 
 	for i in range(0, len(seconds_since) - slice_number):
 
 		for j in range(len(seconds_since[0])):
 
-			new_seconds[i][j] = seconds_since[i + slice_number][j]
+			new_seconds[i][j] = seconds_since[i][j]
 
 
 	new_data = np.concatenate((new_data, new_seconds), axis=1)
@@ -86,9 +90,9 @@ def new_get_processed_data(input_path, output_file, slice_number):
 
 	for i in range(0, len(my_output) - slice_number):
 
-		if (my_output[i + slice_number][0] - my_output[i][0]) > 0:  
+		if (my_output[i + slice_number][0] - my_output[i][0]) > 0: #slice_number/3:  
 
-			forest_output[i] = 1#2
+			forest_output[i] = 2
 			neural_output[i][2] = 1
 
 
@@ -99,7 +103,7 @@ def new_get_processed_data(input_path, output_file, slice_number):
 
 		else:
 
-			forest_output[i] = 0#1
+			forest_output[i] = 0 #1
 			neural_output[i][1] = 1
 
 
@@ -337,155 +341,155 @@ def remove_outliers(my_data_list, my_output_list):
 	return my_data_list, my_output_list
 
 
-def cross_evaluate(slice_number):
+# def cross_evaluate(slice_number):
 
-	dimensions = ["Arousal", "Pleasure", "Dominance"]
-
-
-	print_list = [[], [], []]
-
-	print_counter = 0
+# 	dimensions = ["Arousal", "Pleasure", "Dominance"]
 
 
-	sm = SMOTE(random_state=42)
-	#sm = SVMSMOTE(random_state=42)
-	#sm = BorderlineSMOTE(random_state=42)
-	#sm = KMeansSMOTE(random_state=42)
-	#sm = RandomOverSampler(random_state=42)
-	#sm = ADASYN(random_state=42)
-	#sm = RandomUnderSampler(random_state=42)
+# 	print_list = [[], [], []]
+
+# 	print_counter = 0
 
 
-
-
-	print("Slice Number: ", slice_number)
-
-
-	print_list = [[], [], []]
-
-	print_counter = 0
+# 	sm = SMOTE(random_state=42)
+# 	#sm = SVMSMOTE(random_state=42)
+# 	#sm = BorderlineSMOTE(random_state=42)
+# 	#sm = KMeansSMOTE(random_state=42)
+# 	#sm = RandomOverSampler(random_state=42)
+# 	#sm = ADASYN(random_state=42)
+# 	#sm = RandomUnderSampler(random_state=42)
 
 
 
-	for dim in dimensions:
 
-		print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
+# 	print("Slice Number: ", slice_number)
 
 
-		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+# 	print_list = [[], [], []]
 
-		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+# 	print_counter = 0
 
-		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
-		dim_accuracy = 0
 
-		forest_accuracy = 0
+# 	for dim in dimensions:
 
-		rangy = len(my_data_list)
+# 		print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
 
-		mse_sum = 0 
-		negative_per_sum = 0
-		positive_per_sum = 0
-		correct_pol_sum = 0
-		forgiving_pol_sum = 0
-		sum_confusion_matrix = np.zeros((3,3))
+
+# 		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+# 		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+# 		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+
+# 		dim_accuracy = 0
+
+# 		forest_accuracy = 0
+
+# 		rangy = len(my_data_list)
+
+# 		mse_sum = 0 
+# 		negative_per_sum = 0
+# 		positive_per_sum = 0
+# 		correct_pol_sum = 0
+# 		forgiving_pol_sum = 0
+# 		sum_confusion_matrix = np.zeros((3,3))
 
 
 		
 
-		for k in range(rangy):
+# 		for k in range(rangy):
 
 
 
-			clf = RandomForestClassifier(n_estimators = 300, random_state=42, criterion = "gini")  #class_weight = "balanced"
+# 			clf = RandomForestClassifier(n_estimators = 300, random_state=42, criterion = "gini")  #class_weight = "balanced"
 
-			print(my_output_list[k])
+# 			print(my_output_list[k])
 
-			prediction_data_list = [my_data_list[k]]
-			prediction_output_list = [my_output_list[k]]
-
-
-
-			my_data, forest_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
+# 			prediction_data_list = [my_data_list[k]]
+# 			prediction_output_list = [my_output_list[k]]
 
 
 
-			for i in range(1, len(my_data_list)):
-
-				prov_data, prov_forest = new_get_processed_data(my_data_list[i], my_output_list[i], slice_number)
-				my_data = np.concatenate((my_data, prov_data), axis=0)
-				forest_output = np.concatenate((forest_output, prov_forest), axis=0)
+# 			my_data, forest_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
 
 
 
-			######################################
-			###### To Balance or not to Balance...
-			######################################
+# 			for i in range(1, len(my_data_list)):
+
+# 				prov_data, prov_forest = new_get_processed_data(my_data_list[i], my_output_list[i], slice_number)
+# 				my_data = np.concatenate((my_data, prov_data), axis=0)
+# 				forest_output = np.concatenate((forest_output, prov_forest), axis=0)
 
 
-			######### TO BALANCE
 
-			if balance_data:
+# 			######################################
+# 			###### To Balance or not to Balance...
+# 			######################################
 
 
-				balanced_my_data_forest, balanced_my_output_forest = sm.fit_resample(my_data, forest_output)
+# 			######### TO BALANCE
+
+# 			if balance_data:
+
+
+# 				balanced_my_data_forest, balanced_my_output_forest = sm.fit_resample(my_data, forest_output)
 			
-			#print(np.bincount(np.ravel(balanced_my_output_forest).astype(int)))
+# 			#print(np.bincount(np.ravel(balanced_my_output_forest).astype(int)))
 
-			#################################################
-
-
-
-
-
-			######### NOT TO BALANCE
-
-			else:
-
-				balanced_my_data_forest = my_data
-
-				balanced_my_output_forest = forest_output
-
-			##################################################
-
-
-			clf.fit(balanced_my_data_forest, balanced_my_output_forest)
-
-
-
-			my_data, forest_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
+# 			#################################################
 
 
 
 
-			forest_predict = clf.predict(my_data)
+
+# 			######### NOT TO BALANCE
+
+# 			else:
+
+# 				balanced_my_data_forest = my_data
+
+# 				balanced_my_output_forest = forest_output
+
+# 			##################################################
 
 
-			for_acc = accuracy_score(forest_output, forest_predict)
-
-			conf_mat = confusion_matrix(forest_output, forest_predict, labels = [0., 1., 2.])
-
-
-
-			print(clf.feature_importances_)
-
-			print("Accuracy: ", for_acc)
-
-			print(conf_mat)
-
+# 			clf.fit(balanced_my_data_forest, balanced_my_output_forest)
 
 
 
-			forest_accuracy += for_acc
+# 			my_data, forest_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
 
-			sum_confusion_matrix = sum_confusion_matrix + conf_mat
 
-			dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
 
-			dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
 
-			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+# 			forest_predict = clf.predict(my_data)
+
+
+# 			for_acc = accuracy_score(forest_output, forest_predict)
+
+# 			conf_mat = confusion_matrix(forest_output, forest_predict, labels = [0., 1., 2.])
+
+
+
+# 			print(clf.feature_importances_)
+
+# 			print("Accuracy: ", for_acc)
+
+# 			print(conf_mat)
+
+
+
+
+# 			forest_accuracy += for_acc
+
+# 			sum_confusion_matrix = sum_confusion_matrix + conf_mat
+
+# 			dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+# 			dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+# 			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
 			
 			
@@ -493,201 +497,201 @@ def cross_evaluate(slice_number):
 
 
 
-		print_list[print_counter].append("\n\n\n\n-----> " + dim)
+# 		print_list[print_counter].append("\n\n\n\n-----> " + dim)
 
 
-		print_list[print_counter].append("\n\n Random Forest Accuracy:")
+# 		print_list[print_counter].append("\n\n Random Forest Accuracy:")
 
 
-		print_list[print_counter].append(forest_accuracy/rangy)
+# 		print_list[print_counter].append(forest_accuracy/rangy)
 
 
-		print_list[print_counter].append("\n\n Random Forest Confusion Matrix:")
+# 		print_list[print_counter].append("\n\n Random Forest Confusion Matrix:")
 
 
-		print_list[print_counter].append(sum_confusion_matrix/rangy)
+# 		print_list[print_counter].append(sum_confusion_matrix/rangy)
 		
 
 
-		print_counter += 1
+# 		print_counter += 1
 
 
-	#The final printing
+# 	#The final printing
 
-	for i in range(3):
-		for text in print_list[i]:
-			print(text)
-
-
-
-
-def neural_trainer(slice_number, balance_data):
-
-	dimensions = ["Arousal", "Pleasure", "Dominance"]
-
-
-	print_list = [[], [], []]
-
-	print_counter = 0
-
-
-	#sm = SMOTE(random_state=42)
-	#sm = SVMSMOTE(random_state=42)
-	#sm = BorderlineSMOTE(random_state=42)
-	#sm = KMeansSMOTE(random_state=42)
-	#sm = RandomOverSampler(random_state=42)
-	#sm = ADASYN(random_state=42)
-	sm = RandomUnderSampler(random_state=42)
-
-
-	print("Slice Number: ", slice_number)
-
-	print("Balancing: ", balance_data)
+# 	for i in range(3):
+# 		for text in print_list[i]:
+# 			print(text)
 
 
 
-	print_list = [[], [], []]
 
-	print_counter = 0
+# def neural_trainer(slice_number, balance_data):
 
-
-
-	for dim in dimensions:
-
-		print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
+# 	dimensions = ["Arousal", "Pleasure", "Dominance"]
 
 
-		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+# 	print_list = [[], [], []]
 
-		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
-
-		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
-
-		my_data_list, my_output_list = shuffle(my_data_list, my_output_list)
-
-		dim_accuracy = 0
-
-		total_accuracy = 0
-
-		sum_confusion_matrix = np.zeros((3,3))
+# 	print_counter = 0
 
 
+# 	#sm = SMOTE(random_state=42)
+# 	#sm = SVMSMOTE(random_state=42)
+# 	#sm = BorderlineSMOTE(random_state=42)
+# 	#sm = KMeansSMOTE(random_state=42)
+# 	#sm = RandomOverSampler(random_state=42)
+# 	#sm = ADASYN(random_state=42)
+# 	sm = RandomUnderSampler(random_state=42)
 
-		model = Sequential([
-			InputLayer(input_shape = (23,)),
-			Dense(23, activation='relu'),
-			Dense(3, activation='softmax')
-			])
 
-		model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
+# 	print("Slice Number: ", slice_number)
 
-		es = EarlyStopping(patience=30, monitor ="val_loss")
+# 	print("Balancing: ", balance_data)
 
 
 
-		prediction_data_list = my_data_list[int(len(my_data_list)*0.8):]
-		prediction_output_list = my_output_list[int(len(my_output_list)*0.8):]
+# 	print_list = [[], [], []]
 
-		training_data_list = my_data_list[:int(len(my_data_list)*0.8)]
-		training_output_list = my_output_list[:int(len(my_output_list)*0.8)]
-
-
-		print("Total Traces: ", len(my_data_list))
-		print("Prediction Traces: ", len(prediction_data_list))
-		print("Training Traces: ", len(training_data_list))
+# 	print_counter = 0
 
 
 
-		my_data, forest_output, my_output = new_get_processed_data(training_data_list[0], training_output_list[0], slice_number)
+# 	for dim in dimensions:
 
-		for i in range(1, len(training_data_list)):
+# 		print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
+
+
+# 		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+# 		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+# 		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+
+# 		my_data_list, my_output_list = shuffle(my_data_list, my_output_list)
+
+# 		dim_accuracy = 0
+
+# 		total_accuracy = 0
+
+# 		sum_confusion_matrix = np.zeros((3,3))
 
 
 
-			prov_data, forest_out, prov_out = new_get_processed_data(training_data_list[i], training_output_list[i], slice_number)
-			my_data = np.concatenate((my_data, prov_data), axis=0)
-			my_output = np.concatenate((my_output, prov_out), axis=0)
+# 		model = Sequential([
+# 			InputLayer(input_shape = (23,)),
+# 			Dense(23, activation='relu'),
+# 			Dense(3, activation='softmax')
+# 			])
 
-		balanced_my_data, balanced_my_output = sm.fit_resample(my_data, my_output)
+# 		model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
-		model.fit(balanced_my_data, balanced_my_output, epochs = 1000, batch_size = 30, validation_split = 0.2, callbacks=[es], shuffle=True)
+# 		es = EarlyStopping(patience=30, monitor ="val_loss")
+
+
+
+# 		prediction_data_list = my_data_list[int(len(my_data_list)*0.8):]
+# 		prediction_output_list = my_output_list[int(len(my_output_list)*0.8):]
+
+# 		training_data_list = my_data_list[:int(len(my_data_list)*0.8)]
+# 		training_output_list = my_output_list[:int(len(my_output_list)*0.8)]
+
+
+# 		print("Total Traces: ", len(my_data_list))
+# 		print("Prediction Traces: ", len(prediction_data_list))
+# 		print("Training Traces: ", len(training_data_list))
+
+
+
+# 		my_data, forest_output, my_output = new_get_processed_data(training_data_list[0], training_output_list[0], slice_number)
+
+# 		for i in range(1, len(training_data_list)):
+
+
+
+# 			prov_data, forest_out, prov_out = new_get_processed_data(training_data_list[i], training_output_list[i], slice_number)
+# 			my_data = np.concatenate((my_data, prov_data), axis=0)
+# 			my_output = np.concatenate((my_output, prov_out), axis=0)
+
+# 		balanced_my_data, balanced_my_output = sm.fit_resample(my_data, my_output)
+
+# 		model.fit(balanced_my_data, balanced_my_output, epochs = 1000, batch_size = 30, validation_split = 0.2, callbacks=[es], shuffle=True)
 
 
 
 		
 
-		#Predicting
+# 		#Predicting
 
-		my_data, forest_output, my_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
+# 		my_data, forest_output, my_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
 
-		for i in range(1, len(prediction_data_list)):
+# 		for i in range(1, len(prediction_data_list)):
 
-			prov_data, forest_out, prov_out = new_get_processed_data(prediction_data_list[i], prediction_output_list[i], slice_number)
-			my_data = np.concatenate((my_data, prov_data), axis=0)
-			my_output = np.concatenate((my_output, prov_out), axis=0)
+# 			prov_data, forest_out, prov_out = new_get_processed_data(prediction_data_list[i], prediction_output_list[i], slice_number)
+# 			my_data = np.concatenate((my_data, prov_data), axis=0)
+# 			my_output = np.concatenate((my_output, prov_out), axis=0)
 
-		prediction = model.predict(my_data)
-
-
-
-		p = np.zeros_like(prediction)
-		p[np.arange(len(prediction)), prediction.argmax(1)] = 1
+# 		prediction = model.predict(my_data)
 
 
+
+# 		p = np.zeros_like(prediction)
+# 		p[np.arange(len(prediction)), prediction.argmax(1)] = 1
 
 
 
 
-		acc = accuracy_score(my_output, p)
-
-		conf_mat = confusion_matrix(my_output.argmax(axis=1), p.argmax(axis=1), labels = [0., 1., 2.])
 
 
+# 		acc = accuracy_score(my_output, p)
 
-		print("Accuracy: ", acc)
-
-		print("Confusion Matrix: \n", conf_mat)
+# 		conf_mat = confusion_matrix(my_output.argmax(axis=1), p.argmax(axis=1), labels = [0., 1., 2.])
 
 
 
-		total_accuracy += acc
+# 		print("Accuracy: ", acc)
 
-		sum_confusion_matrix = sum_confusion_matrix + conf_mat
+# 		print("Confusion Matrix: \n", conf_mat)
 
-		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
 
-		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
 
-		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+# 		total_accuracy += acc
+
+# 		sum_confusion_matrix = sum_confusion_matrix + conf_mat
+
+# 		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+# 		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+# 		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
 		
 		
 
 
-		print_list[print_counter].append("\n\n\n\n-----> " + dim)
+# 		print_list[print_counter].append("\n\n\n\n-----> " + dim)
 
 
-		print_list[print_counter].append("\n\n Accuracy:")
+# 		print_list[print_counter].append("\n\n Accuracy:")
 
 
-		print_list[print_counter].append(total_accuracy)
+# 		print_list[print_counter].append(total_accuracy)
 
 
-		print_list[print_counter].append("\n\n Confusion Matrix:")
+# 		print_list[print_counter].append("\n\n Confusion Matrix:")
 
 
-		print_list[print_counter].append(sum_confusion_matrix)
+# 		print_list[print_counter].append(sum_confusion_matrix)
 		
 
 
-		print_counter += 1
+# 		print_counter += 1
 
 
-	#The final printing
+# 	#The final printing
 
-	for i in range(3):
-		for text in print_list[i]:
-			print(text)
+# 	for i in range(3):
+# 		for text in print_list[i]:
+# 			print(text)
 
 
 
@@ -744,16 +748,15 @@ def binary_neural_trainer(slice_number, balance_data):
 
 
 		model = Sequential([
-			InputLayer(input_shape = (23,)),
-			Dense(23, activation='relu'),
-			Dense(23, activation='relu'),
-			Dense(23, activation='relu'),
+			InputLayer(input_shape = (40,)),
+			Dense(30, activation='relu'),
+			Dense(20, activation='relu'),
 			Dense(1, activation='sigmoid')
 			])
 
 		model.compile(optimizer = "adam", loss = "binary_crossentropy", metrics=['accuracy'])
 
-		es = EarlyStopping(patience=30, monitor ="val_accuracy")
+		es = EarlyStopping(patience=20, monitor ="val_accuracy")
 
 
 
@@ -780,13 +783,15 @@ def binary_neural_trainer(slice_number, balance_data):
 			my_data = np.concatenate((my_data, prov_data), axis=0)
 			binary_output = np.concatenate((binary_output, prov_bin_out), axis=0)
 
-		for bina in binary_output:
-			print(bina)
+
+		# for bina in binary_output:
+		# 	print(bina)
+		# exit()
 
 
 		balanced_my_data, balanced_my_output = sm.fit_resample(my_data, binary_output)
 
-		model.fit(balanced_my_data, balanced_my_output, epochs = 10, batch_size = 30, validation_split = 0.2, callbacks=[es], shuffle=True)
+		model.fit(balanced_my_data, balanced_my_output, epochs = 1000, batch_size = 30, validation_split = 0.2, callbacks=[es], shuffle=True)
 
 
 
@@ -813,7 +818,6 @@ def binary_neural_trainer(slice_number, balance_data):
 
 
 
-
 		acc = accuracy_score(binary_output, p)
 
 		conf_mat = confusion_matrix(binary_output, p, labels = [0., 1.])
@@ -830,11 +834,11 @@ def binary_neural_trainer(slice_number, balance_data):
 
 		sum_confusion_matrix = sum_confusion_matrix + conf_mat
 
-		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+		# dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
 
-		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+		# dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
 
-		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+		# my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
 		
 		
@@ -948,13 +952,13 @@ def new_leave_one_out(slice_number, balance_data):
 
 
 
-			my_data, forest_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
+			my_data, forest_output, neural_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
 
 
 
 			for i in range(1, len(my_data_list)):
 
-				prov_data, prov_forest = new_get_processed_data(my_data_list[i], my_output_list[i],slice_number)
+				prov_data, prov_forest, neural_output  = new_get_processed_data(my_data_list[i], my_output_list[i],slice_number)
 				my_data = np.concatenate((my_data, prov_data), axis=0)
 				forest_output = np.concatenate((forest_output, prov_forest), axis=0)
 
@@ -995,7 +999,7 @@ def new_leave_one_out(slice_number, balance_data):
 
 
 
-			my_data, forest_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
+			my_data, forest_output, neural_output  = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
 
 
 
@@ -1061,6 +1065,172 @@ def new_leave_one_out(slice_number, balance_data):
 
 
 
+def test_forests(slice_number, balance_data):
+
+	dimensions = ["Arousal", "Pleasure", "Dominance"]
+
+
+
+	#sm = SMOTE(random_state=42)
+	#sm = SVMSMOTE(random_state=42)
+	#sm = BorderlineSMOTE(random_state=42)
+	#sm = KMeansSMOTE(random_state=42)
+	#sm = RandomOverSampler(random_state=42)
+	#sm = ADASYN(random_state=42)
+	sm = RandomUnderSampler(random_state=42)
+
+
+
+
+	print("Slice Number: ", slice_number)
+
+	print("Balancing: ", balance_data)
+
+
+	max_acc = 0
+
+	for min_samples_leaf_num in range(1,60):
+
+
+		print("########################## ---->", min_samples_leaf_num)
+
+
+
+
+
+
+		print_list = [[], [], []]
+
+		print_counter = 0
+
+
+
+		for dim in dimensions:
+
+			print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
+
+
+			dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+			dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+
+			dim_accuracy = 0
+
+			forest_accuracy = 0
+
+			rangy = len(my_data_list)
+
+			mse_sum = 0 
+			negative_per_sum = 0
+			positive_per_sum = 0
+			correct_pol_sum = 0
+			forgiving_pol_sum = 0
+			sum_confusion_matrix = np.zeros((3,3))
+
+			my_data_list, my_output_list = shuffle(my_data_list, my_output_list)
+
+
+			test_division = 0.2
+
+
+			clf = RandomForestClassifier(n_estimators = 1000, random_state = 42, criterion = "gini", n_jobs = 4, min_samples_leaf = min_samples_leaf_num, oob_score = True)  #class_weight = "balanced"
+
+
+			my_data, forest_output, neural_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
+
+
+
+			for i in range(1, len(my_data_list)):
+
+				prov_data, prov_forest, neural_output  = new_get_processed_data(my_data_list[i], my_output_list[i],slice_number)
+				my_data = np.concatenate((my_data, prov_data), axis=0)
+				forest_output = np.concatenate((forest_output, prov_forest), axis=0)
+
+
+
+
+			prediction_my_data = my_data[:int(len(my_data)*test_division)]
+
+			prediction_forest_output = forest_output[:int(len(forest_output)*test_division)]
+
+			my_data = my_data[int(len(my_data)*test_division):]
+
+			forest_output = forest_output[int(len(forest_output)*test_division):]
+
+
+
+			######################################
+			###### To Balance or not to Balance...
+			######################################
+
+
+			######### TO BALANCE
+
+			if balance_data:
+
+
+				balanced_my_data_forest, balanced_my_output_forest = sm.fit_resample(my_data, forest_output)
+			
+			#print(np.bincount(np.ravel(balanced_my_output_forest).astype(int)))
+
+			#################################################
+
+
+
+
+
+			######### NOT TO BALANCE
+
+			else:
+
+				balanced_my_data_forest = my_data
+
+				balanced_my_output_forest = forest_output
+
+			##################################################
+
+
+			clf.fit(balanced_my_data_forest, balanced_my_output_forest)
+
+
+
+			#my_data, forest_output, neural_output  = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
+
+
+
+
+			forest_predict = clf.predict(prediction_my_data)
+
+
+			for_acc = accuracy_score(prediction_forest_output, forest_predict)
+
+			conf_mat = confusion_matrix(prediction_forest_output, forest_predict, labels = [0., 1., 2.])
+
+
+
+			print(clf.feature_importances_)
+
+			print("Accuracy: ", for_acc)
+
+			print(conf_mat)
+
+
+
+
+			forest_accuracy += for_acc
+
+			sum_confusion_matrix = sum_confusion_matrix + conf_mat
+
+			dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+			dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+
+			
+		
 
 
 
@@ -1405,44 +1575,51 @@ def behaviour_predict(inputs, trained_model):
 
 
 
+def main():
+	
+
+
+	seed(7)
+	set_seed(7)
+
+	slice_number = 4
+	balance_data = True
+
+
+	#binary_neural_trainer(slice_number, balance_data)
+
+	#number_crawlwer()
+
+
+	#new_leave_one_out(slice_number, balance_data)
+
+	test_forests(slice_number, balance_data)
+
+	#behavioural_trainer()
+
+
+	# print_images_folder("First_Study", slice_number)
+
+
+	#inputs = "inf_inf_inf_0_0_0_0_0_0_0_0_0_0_0_0_inf_100_0_0_0_[[359, 359, 359, 354, 354, 354, 354, 354, 345, 345, 345, 345, 345, 345, 345, 345, 354, 354, 354, 354, 354, 359, 359, 359, 359, 359, 357, 357, 357, 357, 350, 350, 350, 350, 350, 339, 339, 339, 339, 325, 325, 325, 309, 292, 274, 256, 218, 141, 0, 0, 0, 182, 259, 278, 314, 314, 331, 331, 346, 346, 346, 346, 359, 359, 359, 359, 359, 367, 367, 367, 367, 367, 367, 369, 369, 369, 369, 369, 369, 363, 363, 363, 363, 363, 363, 353, 353, 353, 353, 353, 350, 350, 350, 350, 357, 357, 357, 357, 359, 359]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]"
+
+	#get_behavioural_input(inputs)
+
+	# trained_model_file = 'trained_forest.pkl'
+
+	# trained_model = load(trained_model_file)
+
+
+	# behaviour_predict(inputs, trained_model)
 
 
 
-seed(7)
-set_seed(7)
 
-slice_number = 8*3
-balance_data = True
-
-
-binary_neural_trainer(slice_number, balance_data)
-
-#number_crawlwer()
-
-
-#new_leave_one_out(slice_number, balance_data)
-
-#behavioural_trainer()
-
-
-# print_images_folder("First_Study", slice_number)
-
-
-#inputs = "inf_inf_inf_0_0_0_0_0_0_0_0_0_0_0_0_inf_100_0_0_0_[[359, 359, 359, 354, 354, 354, 354, 354, 345, 345, 345, 345, 345, 345, 345, 345, 354, 354, 354, 354, 354, 359, 359, 359, 359, 359, 357, 357, 357, 357, 350, 350, 350, 350, 350, 339, 339, 339, 339, 325, 325, 325, 309, 292, 274, 256, 218, 141, 0, 0, 0, 182, 259, 278, 314, 314, 331, 331, 346, 346, 346, 346, 359, 359, 359, 359, 359, 367, 367, 367, 367, 367, 367, 369, 369, 369, 369, 369, 369, 363, 363, 363, 363, 363, 363, 353, 353, 353, 353, 353, 350, 350, 350, 350, 357, 357, 357, 357, 359, 359]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]"
-
-#get_behavioural_input(inputs)
-
-# trained_model_file = 'trained_forest.pkl'
-
-# trained_model = load(trained_model_file)
-
-
-# behaviour_predict(inputs, trained_model)
-
-
-
-
-
+# run the main function only if this module is executed as the main script
+# (if you import this as a module then nothing is executed)
+if __name__=="__main__":
+	# call the main function
+	main()
 
 
 
