@@ -1184,9 +1184,12 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 	def __init__(self, world):  #parameter_list
 		BasicAgent.__init__(self, world)
 
-		# PARAMETER LIST
-
+		#####################
+		#  PARAMETER LIST   #
+		#####################
+		
 		# (explore_preference, flower_preference, kill_preference, coin_preference, cake_preference, randomness, cake_health_influence)
+
 		self.parameter_list = [5, 9, 3, 2, 2, 0, 7]
 
 

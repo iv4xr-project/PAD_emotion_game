@@ -33,7 +33,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from sklearn.utils import shuffle
 from collections import Counter
-import trace_generator
+import trace_processor
 from joblib import dump, load
 from numpy import inf
 
@@ -124,7 +124,7 @@ def get_behavioural_data(input_path, output_file):
 	my_data = np.loadtxt(data, delimiter='_')
 
 
-	output = str(trace_generator.file_to_actions_translator(output_file)).replace('[[', '').replace(']]', '').replace('\'', '')
+	output = str(trace_processor.file_to_actions_translator(output_file)).replace('[[', '').replace(']]', '').replace('\'', '')
 
 	my_output = output.split('], [')
 
@@ -201,10 +201,6 @@ def get_behavioural_input(inputs):
 
 	n_data = np.delete(my_data[12:], 3)
 
-
-	#Ignorar os primeiros 12, adicionar os próximos 3, ignorar o próximo e depois adicionar tudo a partir dai
-
-
 	new_data = np.zeros((1, (len(n_data))))
 
 	for i in range(len(n_data)):
@@ -238,18 +234,6 @@ def predict_traces_on_folder():
 
 	es = EarlyStopping(patience=7)
 
-
-
-
-	#Training 
-
-
-	# for i in range(len(my_data_list)):
-	# 	my_data, my_output = get_processed_data(my_data_list[i], my_output_list[i])
-
-
-
-	# 	model.fit(my_data, my_output, epochs = 1000, batch_size = 128, validation_split = 0.2, callbacks=[es], shuffle=True)
 
 	my_data, my_output = get_processed_data(my_data_list[0], my_output_list[0])
 
@@ -840,21 +824,14 @@ def binary_neural_trainer(slice_number, balance_data):
 
 		# my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
-		
-		
-
 
 		print_list[print_counter].append("\n\n\n\n-----> " + dim)
 
-
 		print_list[print_counter].append("\n\n Accuracy:")
-
 
 		print_list[print_counter].append(total_accuracy)
 
-
 		print_list[print_counter].append("\n\n Confusion Matrix:")
-
 
 		print_list[print_counter].append(sum_confusion_matrix)
 		
@@ -963,36 +940,14 @@ def new_leave_one_out(slice_number, balance_data):
 				forest_output = np.concatenate((forest_output, prov_forest), axis=0)
 
 
-
-			######################################
-			###### To Balance or not to Balance...
-			######################################
-
-
-			######### TO BALANCE
-
 			if balance_data:
-
 
 				balanced_my_data_forest, balanced_my_output_forest = sm.fit_resample(my_data, forest_output)
 			
-			#print(np.bincount(np.ravel(balanced_my_output_forest).astype(int)))
-
-			#################################################
-
-
-
-
-
-			######### NOT TO BALANCE
-
 			else:
 
 				balanced_my_data_forest = my_data
-
 				balanced_my_output_forest = forest_output
-
-			##################################################
 
 
 			clf.fit(balanced_my_data_forest, balanced_my_output_forest)
@@ -1033,29 +988,19 @@ def new_leave_one_out(slice_number, balance_data):
 			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
 			
-			
-
-
-
 
 		print_list[print_counter].append("\n\n\n\n-----> " + dim)
 
-
 		print_list[print_counter].append("\n\n Random Forest Accuracy:")
-
 
 		print_list[print_counter].append(forest_accuracy/rangy)
 
-
 		print_list[print_counter].append("\n\n Random Forest Confusion Matrix:")
-
 
 		print_list[print_counter].append(sum_confusion_matrix/rangy)
 		
 
-
 		print_counter += 1
-
 
 	#The final printing
 
@@ -1093,9 +1038,6 @@ def test_forests(slice_number, balance_data):
 
 
 		print("########################## ---->", min_samples_leaf_num)
-
-
-
 
 
 
@@ -1150,7 +1092,6 @@ def test_forests(slice_number, balance_data):
 
 
 
-
 			prediction_my_data = my_data[:int(len(my_data)*test_division)]
 
 			prediction_forest_output = forest_output[:int(len(forest_output)*test_division)]
@@ -1160,36 +1101,15 @@ def test_forests(slice_number, balance_data):
 			forest_output = forest_output[int(len(forest_output)*test_division):]
 
 
-
-			######################################
-			###### To Balance or not to Balance...
-			######################################
-
-
-			######### TO BALANCE
-
 			if balance_data:
-
 
 				balanced_my_data_forest, balanced_my_output_forest = sm.fit_resample(my_data, forest_output)
 			
 			#print(np.bincount(np.ravel(balanced_my_output_forest).astype(int)))
-
-			#################################################
-
-
-
-
-
-			######### NOT TO BALANCE
-
 			else:
 
 				balanced_my_data_forest = my_data
-
 				balanced_my_output_forest = forest_output
-
-			##################################################
 
 
 			clf.fit(balanced_my_data_forest, balanced_my_output_forest)
@@ -1197,8 +1117,6 @@ def test_forests(slice_number, balance_data):
 
 
 			#my_data, forest_output, neural_output  = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
-
-
 
 
 			forest_predict = clf.predict(prediction_my_data)
@@ -1229,10 +1147,7 @@ def test_forests(slice_number, balance_data):
 
 			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
-			
 		
-
-
 
 
 
@@ -1329,10 +1244,10 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 
 		colour_code = 'k'
 
-		if new_output[i][0] <= -1:
-			colour_code = 'r'
+		# if new_output[i][0] <= -1:
+		# 	colour_code = 'r'
 
-		elif new_output[i][0] >= 1:
+		if new_output[i][0] >= 1:
 			colour_code = 'g'
 
 		for j in range(24):
@@ -1348,7 +1263,7 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 
 	fig4 = plt.figure()
 	ax4 = fig4.add_subplot(111)
-	img = plt.imread("try.png")
+	img = plt.imread("./Maps/back_map.png")
 
 	ax4.imshow(img, extent=[-190, 2230, -960, 260])
 
@@ -1366,7 +1281,6 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 	plt.ylim([-1000, 200])
 	fig_name = "Figures/" + dimension_file.replace('.txt','') + "_DIMENSION_LOC"
 	fig4.savefig(fig_name)
-
 
 
 	#idea: use this but with for loops to create a lot of tiny sections (1 or 3 seconds?).
@@ -1489,70 +1403,6 @@ def behavioural_trainer():
 
 	print(clf.feature_importances)
 
-	# exit()
-
-
-
-	# my_data, forest_output = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
-
-
-
- # ############## There will be no predict here for now I guess
-
-
-	# forest_predict = clf.predict(my_data)
-
-
-	# for_acc = accuracy_score(forest_output, forest_predict)
-
-	# conf_mat = confusion_matrix(forest_output, forest_predict, labels = [0., 1., 2.])
-
-
-
-	# print(clf.feature_importances_)
-
-	# print("Accuracy: ", for_acc)
-
-	# print(conf_mat)
-
-
-
-
-	# forest_accuracy += for_acc
-
-	# sum_confusion_matrix = sum_confusion_matrix + conf_mat
-
-
-
-
-
-	# print_list[print_counter].append("\n\n\n\n-----> " + dim)
-
-
-	# print_list[print_counter].append("\n\n Random Forest Accuracy:")
-
-
-	# print_list[print_counter].append(forest_accuracy/rangy)
-
-
-	# print_list[print_counter].append("\n\n Random Forest Confusion Matrix:")
-
-
-	# print_list[print_counter].append(sum_confusion_matrix/rangy)
-	
-
-
-	# print_counter += 1
-
-
-	# #The final printing
-
-	# for i in range(3):
-	# 	for text in print_list[i]:
-	# 		print(text)
-
-
-
 
 
 
@@ -1571,35 +1421,25 @@ def behaviour_predict(inputs, trained_model):
 
 
 
-
-
-
-
 def main():
 	
-
-
 	seed(7)
 	set_seed(7)
 
 	slice_number = 4
 	balance_data = True
 
-
 	#binary_neural_trainer(slice_number, balance_data)
 
 	#number_crawlwer()
 
-
 	#new_leave_one_out(slice_number, balance_data)
 
-	test_forests(slice_number, balance_data)
+	#test_forests(slice_number, balance_data)
 
 	#behavioural_trainer()
 
-
-	# print_images_folder("First_Study", slice_number)
-
+	print_images_folder("First_Study", slice_number)
 
 	#inputs = "inf_inf_inf_0_0_0_0_0_0_0_0_0_0_0_0_inf_100_0_0_0_[[359, 359, 359, 354, 354, 354, 354, 354, 345, 345, 345, 345, 345, 345, 345, 345, 354, 354, 354, 354, 354, 359, 359, 359, 359, 359, 357, 357, 357, 357, 350, 350, 350, 350, 350, 339, 339, 339, 339, 325, 325, 325, 309, 292, 274, 256, 218, 141, 0, 0, 0, 182, 259, 278, 314, 314, 331, 331, 346, 346, 346, 346, 359, 359, 359, 359, 359, 367, 367, 367, 367, 367, 367, 369, 369, 369, 369, 369, 369, 363, 363, 363, 363, 363, 363, 353, 353, 353, 353, 353, 350, 350, 350, 350, 357, 357, 357, 357, 359, 359]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]"
 
@@ -1609,16 +1449,10 @@ def main():
 
 	# trained_model = load(trained_model_file)
 
-
 	# behaviour_predict(inputs, trained_model)
 
 
-
-
-# run the main function only if this module is executed as the main script
-# (if you import this as a module then nothing is executed)
 if __name__=="__main__":
-	# call the main function
 	main()
 
 
