@@ -271,7 +271,7 @@ class BasicAgent:
 				# else:
 				# 	print("Error in directions!!!")
 				# 	exit()
-´
+
 
 		self.update_nav_graph()
 		self.previous_pos_x = self.world.player.imagined_x
