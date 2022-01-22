@@ -1,7 +1,7 @@
 from ast import Pass
 import numpy as np
 import time
-import Maxent_irl
+import Maxent_irl as MaxEnt
 
 MAXLIFE = 100
 MIN_DIST = 20
@@ -20,6 +20,8 @@ class MDP:
         self.n_actions = len(self.actions)
         #states
         self.n_states = self.one_feature ** len(self.features) 
+        #gamma discount factor
+        self.discount_factor = 0.9
         
     def get_probability_matrix(self):
         prob_matrix = np.zeros((self.n_actions, self.n_states, self.n_states))
@@ -132,14 +134,13 @@ class MDP:
         
         return possible_values
         
-def load_trajectories():
-    pass
-
-def perfrom_irl():
-    pass
+def perfrom_irl(mdp, trajectories, training_epochs, learning_rate):
+    weights = MaxEnt.irl(mdp.feature_matrix, mdp.n_actions, mdp.discount_factor, mdp.get_probability_matrix, trajectories, training_epochs, learning_rate)
+    return weights
 
 if __name__=="__main__":
     m = MDP()
     print(m.n_states)
     start_time = time.time()
+    
     print("--- %s seconds ---" % (time.time() - start_time))
