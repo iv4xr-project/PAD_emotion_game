@@ -43,16 +43,16 @@ class BasicAgent:
 		self.left_unknown = []
 		self.right_unknown = []
 
-		self.visited_array = [0] * self.world.perceptor.num_directions
+		#self.visited_array = [0] * self.world.perceptor.num_directions
 
 
-		self.direction_array = [None] * self.world.perceptor.num_directions
+		# self.direction_array = [None] * self.world.perceptor.num_directions
 
-		for i in range(len(self.direction_array)):
-			direct = (i/self.world.perceptor.num_directions)*360 + 180
-			if direct >= 360:
-				direct -= 360
-			self.direction_array[i] = direct
+		# for i in range(len(self.direction_array)):
+		# 	direct = (i/self.world.perceptor.num_directions)*360 + 180
+		# 	if direct >= 360:
+		# 		direct -= 360
+		# 	self.direction_array[i] = direct
 
 		self.last_update_x = None
 		self.last_update_y = None
@@ -271,7 +271,6 @@ class BasicAgent:
 				# else:
 				# 	print("Error in directions!!!")
 				# 	exit()
-´
 
 		self.update_nav_graph()
 		self.previous_pos_x = self.world.player.imagined_x
@@ -1181,7 +1180,7 @@ class RuleBasedAgent6(BasicAgent): #Goes to flower once found. Kills everyone on
 class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 
 
-	def __init__(self, world):  #parameter_list
+	def __init__(self, world, parameters):  #parameter_list
 		BasicAgent.__init__(self, world)
 
 		#####################
@@ -1190,7 +1189,7 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		
 		# (explore_preference, flower_preference, kill_preference, coin_preference, cake_preference, randomness, cake_health_influence)
 
-		self.parameter_list = [5, 9, 3, 2, 2, 0, 7]
+		self.parameter_list = parameters
 
 
 	def choose_node_to_explore(self, node_list):
@@ -1215,7 +1214,7 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		explore_preference = self.parameter_list[0]/10 * (1 - self.world_explored)
 
 		distance_closest_flower, closest_flower = self.closest_manhattan_sprite(self.world.flower_group)
-		flower_preference = self.parameter_list[1] * (1/distance_closest_flower) + self.parameter_list[1] * self.world_explored
+		flower_preference = self.parameter_list[1] * (1/distance_closest_flower) + self.world_explored
 
 		distance_closest_enemy, closest_enemy = self.closest_manhattan_sprite(self.world.enemy_group)
 		kill_preference = self.parameter_list[2] * (1/distance_closest_enemy)
@@ -1226,7 +1225,7 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		distance_closest_cake, closest_cake = self.closest_manhattan_sprite(self.world.food_group)
 		cake_preference = (self.parameter_list[4] * 1/distance_closest_cake) + (self.parameter_list[6]*((self.world.player.max_hp - self.world.player.hp) / self.world.player.max_hp)*(1/distance_closest_cake))
 
-		randomness = self.parameter_list[5]
+		randomness = self.parameter_list[5]/10
 
 		pref_list = [explore_preference, flower_preference, kill_preference, coin_preference, cake_preference]
 
@@ -1237,7 +1236,7 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		is_max_list[index_max] = 1
 
 
-		explore_probabiliy = (1 - randomness) * (explore_preference * (is_max_list[0] + randomness))
+		explore_probabiliy = (1 - randomness) * (explore_preference * (is_max_list[0] + randomness))  + 0.0000001 #this little value is added because the random.choices function can't deal with all probabilities being 0. When that happens, we decide that the agent should simply explore
 
 		flower_probability = (1 - randomness) * (flower_preference * (is_max_list[1] + randomness))
 

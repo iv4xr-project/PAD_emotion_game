@@ -2647,7 +2647,7 @@ def play_with_pre_trained_model(trained_model_file, date_time, frame_rate, map_n
 
 
 
-def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions):
+def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = True):
 
 
 	#variable to control the main loop
@@ -2659,15 +2659,16 @@ def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map
 	player = Player(world.screen_width/2 -15, world.screen_height/2 -15, world)
 	world.player = player
 
-	perceptor = Perceptor(world, math.inf, date_time, map_name, num_directions)
+	#perceptor = Perceptor(world, math.inf, date_time, map_name, num_directions)
 
-	world.perceptor = perceptor
+	#world.perceptor = perceptor
 
-	agent = agent_type(world)
+	agent = agent_type(world, parameters)
 
 	to_save_buffer = []
 
-	world.render()
+	if render:
+		world.render()
 
 
 	player_dead = False
@@ -2688,6 +2689,7 @@ def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map
 
 	n_avoidance = 0
 
+	action_list=[]
 
 	while running:
 
@@ -2696,11 +2698,12 @@ def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map
 
 
 		world.update()
-		perceptor.update()
+		#perceptor.update()
 
-		world.render()
-		#perceptor.polygon_group.draw(world.screen)
-		pygame.display.flip()
+		if render:
+			world.render()
+			#perceptor.polygon_group.draw(world.screen)
+			pygame.display.flip()
 
 
 		#handle death
@@ -2714,12 +2717,12 @@ def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map
 
 			player_dead = True
 
-			s = pygame.Surface((world.screen_width, world.screen_height))
-			s.set_alpha(155)         
-			s.fill((255,255,255))        
-			world.screen.blit(s, (0,0)) 
+			# s = pygame.Surface((world.screen_width, world.screen_height))
+			# s.set_alpha(155)         
+			# s.fill((255,255,255))        
+			# world.screen.blit(s, (0,0)) 
 
-			pygame.display.flip()
+			# pygame.display.flip()
 
 			running = False
 			break
@@ -2730,12 +2733,12 @@ def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map
 
 				player_won = True
 
-				s = pygame.Surface((world.screen_width, world.screen_height))  
-				s.set_alpha(155)              
-				s.fill((255,255,255))          
-				world.screen.blit(s, (0,0)) 
+				# s = pygame.Surface((world.screen_width, world.screen_height))  
+				# s.set_alpha(155)              
+				# s.fill((255,255,255))          
+				# world.screen.blit(s, (0,0)) 
 
-				pygame.display.flip()
+				# pygame.display.flip()
 				
 				running = False
 				break
@@ -2752,10 +2755,12 @@ def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map
 ###########
 ############  The model logic needs to be here
 		
-		perceptions = perceptor.current_perceptions
+		#perceptions = perceptor.current_perceptions
 
 
 		action = agent.getAction()
+
+		action_list.append(action)
 
 		if action == 'n':
 			world.shift_down = 0
@@ -2911,14 +2916,45 @@ def play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map
 
 
 
-	perceptor.write_to_file()
+	#perceptor.write_to_file()
 
 
-	return
+	return action_list
 
 
 
+def parameterized_agent_play(parameters, map_name, render):
 
+	pygame.init()
+
+
+	logo = pygame.image.load("Images/30-30_samurai_ball_3.png")
+	pygame.display.set_icon(logo)
+	pygame.display.set_caption("Flower Hunter")
+
+	files_to_email = ['student_number.txt']
+	
+
+	map_height = 600
+	map_width = 600
+
+	frame_rate = 0.0
+
+	big_fontzy = pygame.font.Font(os.path.join("Fonts", 'MacondoSwashCaps.ttf'), 62)
+	medium_fontzy = pygame.font.Font(os.path.join("Fonts", 'MacondoSwashCaps.ttf'), 32)
+	small_fontzy =  pygame.font.Font(os.path.join("Fonts", 'MacondoSwashCaps.ttf'), 24)
+
+	screeno = pygame.display.set_mode([map_width, map_height])
+
+	date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
+
+	num_directions = 200 #Needs to be divisable by 8
+
+	agent_type = rule_based_agents.ParameterAgent
+
+	action_list = play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = render)
+
+	return action_list
 
 
 
@@ -3242,9 +3278,9 @@ def main():
 
 	agent_type = rule_based_agents.ParameterAgent
 
+	parameters = [5, 9, 3, 2, 2, 0, 7]
 
-
-	play_with_agent(agent_type, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+	play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
 
 
 
@@ -3256,6 +3292,8 @@ def main():
 if __name__=="__main__":
 	# call the main function
 	main()
+
+
 
 
 

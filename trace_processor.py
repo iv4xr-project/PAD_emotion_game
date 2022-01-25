@@ -290,6 +290,8 @@ def actions_to_string_translator(action_list):
 	return action_string
 
 
+def lev_distance(string1, string2):
+	return lv.distance(string1, string2)
 
 
 def levenshtein_distance_between_traces(trace_file_1, trace_file_2):
@@ -300,7 +302,7 @@ def levenshtein_distance_between_traces(trace_file_1, trace_file_2):
 	string1 = actions_to_string_translator(actions1)
 	string2 = actions_to_string_translator(actions2)
 
-	distance = lv.distance(string1, string2)
+	distance = lev_distance(string1, string2)
 
 	return distance
 
@@ -311,7 +313,6 @@ def levenshtein_afinity_clustering(glob_file_path):
 
 	words = glob.glob(glob_file_path)
 
-	#words = "YOUR WORDS HERE".split(" ") #Replace this line
 	words = np.asarray(words) #So that indexing with a list will work
 	lev_similarity = -1*np.array([[levenshtein_distance_between_traces(w1,w2) for w1 in words] for w2 in words])
 
