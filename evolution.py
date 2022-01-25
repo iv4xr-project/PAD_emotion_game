@@ -125,7 +125,7 @@ class Evo:
 if __name__ == '__main__':
 
 
-	population_size = 10
+	population_size = 100
 	truncation_percentage = 0.5
 	mutation_rate = 0.05
 	max_generations = 10
