@@ -4,6 +4,7 @@ import trace_processor
 import glob
 import infinite_game
 import Levenshtein as lv 
+import predictor
 
 class Evo:
 	def __init__(self, population_size, truncation_percentage, mutation_rate, max_generations, cluster_example, map_name):
@@ -30,9 +31,11 @@ class Evo:
 	def get_initial_population(self):
 		
 
-		for _ in range(population_size):
+		for parameter_num in range(population_size):
 
-			individual = random.choices(range(0, 11), k = 7)
+			individual = random.choices(range(0, 11), k = 9)
+
+			individual[5] = 0
 
 			self.population.append(individual)
 
@@ -46,13 +49,19 @@ class Evo:
 
 		print("Agent Playing: ", agent_parameters)
 
-		action_list = infinite_game.parameterized_agent_play(agent_parameters, self.map_name, False)
+		action_list, pos_file_path = infinite_game.parameterized_agent_play(agent_parameters, self.map_name, False)
 
 		action_string = trace_processor.actions_to_string_translator(action_list)
 
-		fitness = - trace_processor.lev_distance(action_string, cluster_example)
+		#fitness = - trace_processor.lev_distance(action_string, cluster_example)
 
-		return fitness
+		fitness = - trace_processor.len_discounted_lev_distance(action_string, cluster_example)
+
+		# print("Action String: ", action_string)
+		# print("Cluster: ", cluster_example)
+		# print("Fitness: ", fitness)
+
+		return fitness, action_string, pos_file_path
 
 
 
@@ -61,7 +70,7 @@ class Evo:
 		fitness_list = []
 		summed_fitness = 0
 		for agent in self.population:
-			fitness = self.get_fitness(agent)
+			fitness, _, _ = self.get_fitness(agent)
 			summed_fitness += fitness
 			fitness_list.append(fitness)
 
@@ -85,7 +94,9 @@ class Evo:
 			#create a child that is a mixture of both with a sprinkle of mutation
 			child = []
 			for parameter_num in range(len(parents[0])):
-				if random.uniform(0, 1) < self.mutation_rate:
+				if parameter_num == 5:
+					parameter = 0
+				elif random.uniform(0, 1) < self.mutation_rate:
 					parameter = random.randint(0,10)
 				else:
 					parameter = random.choice([parents[0][parameter_num], parents[1][parameter_num]])
@@ -125,10 +136,10 @@ class Evo:
 if __name__ == '__main__':
 
 
-	population_size = 100
-	truncation_percentage = 0.5
-	mutation_rate = 0.05
-	max_generations = 10
+	population_size = 200
+	truncation_percentage = 0.2
+	mutation_rate = 0.4
+	max_generations = 20
 
 	map_name = "Level2"
 
@@ -148,6 +159,13 @@ if __name__ == '__main__':
 	print("\n\n\nBest Fitness Evolution: ", evo.best_fitness_evolution)
 
 	print("\n\n\nBest Agent Evolution: ", evo.best_agent_evolution)
+
+	#Save trace of best agent
+
+	fitness, action_string, pos_file_path = evo.get_fitness(evo.best_agent_evolution[-1])
+
+	predictor.save_location(pos_file_path, 1)
+
 
 
 

@@ -294,6 +294,10 @@ def lev_distance(string1, string2):
 	return lv.distance(string1, string2)
 
 
+def len_discounted_lev_distance(string1, string2):
+	return lv.distance(string1, string2) + (abs(len(string1) - len(string2)))
+
+
 def levenshtein_distance_between_traces(trace_file_1, trace_file_2):
 
 	actions1 = file_to_actions_translator(trace_file_1)

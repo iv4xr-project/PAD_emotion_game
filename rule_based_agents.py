@@ -205,9 +205,14 @@ class BasicAgent:
 				else:
 					self.stuck_counter = 0
 
-				if self.stuck_counter >= 3:
+				if self.stuck_counter >= 2:
 					self.stuck_counter = 0
-					action = random.choice(MOVE_LIST)
+					if self.previous_action == "w" or self.previous_action == "s":
+						action = "a"
+					elif self.previous_action == "a" or self.previous_action == "d":
+						action = "w"
+					else:
+						action = random.choice(["a", "w"])
 				else:
 
 					if self.chasing_enemy:
@@ -360,8 +365,12 @@ class BasicAgent:
 		#print("Stuck counter: ", self.stuck_counter)
 		if self.stuck_counter >= 3:
 			self.stuck_counter = 0
-			action = random.choice(MOVE_LIST)
-			self.previous_action = action
+			if self.previous_action == "w" or self.previous_action == "s":
+				action = "a"
+			elif self.previous_action == "a" or self.previous_action == "d":
+				action = "w"
+			else:
+				action = random.choice(["a", "w"])
 			return action
 
 
@@ -413,10 +422,14 @@ class BasicAgent:
 			self.stuck_counter += 1
 		else:
 			self.stuck_counter = 0
-		if self.stuck_counter >= 3:
+		if self.stuck_counter >= 2:
 			self.stuck_counter = 0
-			action = random.choice(MOVE_LIST)
-			self.previous_action = action
+			if self.previous_action == "w" or self.previous_action == "s":
+				action = "a"
+			elif self.previous_action == "a" or self.previous_action == "d":
+				action = "w"
+			else:
+				action = random.choice(["a", "w"])
 			return action
 
 
@@ -456,6 +469,9 @@ class BasicAgent:
 
 
 		return action
+
+	def euclidian_distance(self, p1, p2):
+		return math.sqrt( ((p1[0]-p2[0])**2)+((p1[1]-p2[1])**2) )
 
 
 
@@ -890,10 +906,14 @@ class BasicAgent:
 		else:
 			self.stuck_counter = 0
 
-		if self.stuck_counter >= 3:
+		if self.stuck_counter >= 2:
 			self.stuck_counter = 0
-			action = random.choice(MOVE_LIST)
-			self.previous_action = action
+			if self.previous_action == "w" or self.previous_action == "s":
+				action = "a"
+			elif self.previous_action == "a" or self.previous_action == "d":
+				action = "w"
+			else:
+				action = random.choice(["a", "w"])
 			return action
 
 		if self.last_update_x == None:
@@ -937,7 +957,7 @@ class BasicAgent:
 		self.previous_pos_x = self.world.player.imagined_x
 		self.previous_pos_y = self.world.player.imagined_y
 
-		
+		self.previous_action
 		return action
 
 
@@ -1187,12 +1207,34 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		#  PARAMETER LIST   #
 		#####################
 		
-		# (explore_preference, flower_preference, kill_preference, coin_preference, cake_preference, randomness, cake_health_influence)
+		# (explore_preference, flower_preference, kill_preference, coin_preference, cake_preference, randomness, cake_health_influence, x_preference, y_preference)
 
 		self.parameter_list = parameters
 
+		self.explore_preference_par = self.parameter_list[0]
+
+		self.flower_preference_par = self.parameter_list[1]
+
+		self.kill_preference_par = self.parameter_list[2]
+
+		self.coin_preference_par = self.parameter_list[3]
+
+		self.cake_preference_par = self.parameter_list[4]
+
+		self.randomness_par = self.parameter_list[5]
+
+		self.cake_health_influence_par = self.parameter_list[6]
+
+		self.x_preference_par = self.parameter_list[7]
+
+		self.y_preference_par = self.parameter_list[8]
+
 
 	def choose_node_to_explore(self, node_list):
+
+		x_offset = (self.x_preference_par/10 - 0.5) * self.world.screen_width*0.95
+
+		y_offset = (self.y_preference_par/10 - 0.5) * self.world.screen_height*0.95
 
 		min_distance = float('inf')
 		min_node = None
@@ -1200,7 +1242,14 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		for possible in node_list:
 			player_x = self.world.player.imagined_x + self.world.screen_width/2
 			player_y = self.world.player.imagined_y + self.world.screen_height/2
-			distance = len(nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(player_x, player_y), target=possible))
+
+
+			distance = self.euclidian_distance([player_x + x_offset, player_y + y_offset], possible)
+			# try:
+			# 	distance = len(nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(player_x + x_offset, player_y + y_offset), target=possible))
+			# except nx.NetworkXNoPath as e:
+			# 	print("That damn error...")
+			# 	exit()
 
 			if distance < min_distance:
 				min_distance = distance
@@ -1211,32 +1260,32 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		
 	def getAction(self):
 
-		explore_preference = self.parameter_list[0]/10 * (1 - self.world_explored)
+		explore_preference = self.explore_preference_par/10 * (1 - self.world_explored)
 
 		distance_closest_flower, closest_flower = self.closest_manhattan_sprite(self.world.flower_group)
-		flower_preference = self.parameter_list[1] * (1/distance_closest_flower) + self.world_explored
+		flower_preference = self.flower_preference_par * (1/distance_closest_flower) + self.world_explored
 
 		distance_closest_enemy, closest_enemy = self.closest_manhattan_sprite(self.world.enemy_group)
-		kill_preference = self.parameter_list[2] * (1/distance_closest_enemy)
+		kill_preference = self.kill_preference_par * (1/distance_closest_enemy)
 
 		distance_closest_coin, closest_coin = self.closest_manhattan_sprite(self.world.money_group)
-		coin_preference = self.parameter_list[3] * (1/distance_closest_coin)
+		coin_preference = self.coin_preference_par * (1/distance_closest_coin)
 
 		distance_closest_cake, closest_cake = self.closest_manhattan_sprite(self.world.food_group)
-		cake_preference = (self.parameter_list[4] * 1/distance_closest_cake) + (self.parameter_list[6]*((self.world.player.max_hp - self.world.player.hp) / self.world.player.max_hp)*(1/distance_closest_cake))
+		cake_preference = (self.cake_preference_par * 1/distance_closest_cake) + (self.cake_health_influence_par*((self.world.player.max_hp - self.world.player.hp) / self.world.player.max_hp)*(1/distance_closest_cake))
 
-		randomness = self.parameter_list[5]/10
+		randomness = self.randomness_par/10
 
 		pref_list = [explore_preference, flower_preference, kill_preference, coin_preference, cake_preference]
 
 		index_max = pref_list.index(max(pref_list))
 
-		is_max_list = np.zeros((len(pref_list), 1))
+		is_max_list = [0]*len(pref_list)
 
 		is_max_list[index_max] = 1
 
 
-		explore_probabiliy = (1 - randomness) * (explore_preference * (is_max_list[0] + randomness))  + 0.0000001 #this little value is added because the random.choices function can't deal with all probabilities being 0. When that happens, we decide that the agent should simply explore
+		explore_probabiliy = (1 - randomness) * (explore_preference * (is_max_list[0] + randomness))
 
 		flower_probability = (1 - randomness) * (flower_preference * (is_max_list[1] + randomness))
 
@@ -1247,17 +1296,24 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		cake_probability = (1 - randomness) * (cake_preference * (is_max_list[4] + randomness))
 
 
+
 		prob_list = [explore_probabiliy, flower_probability, kill_probability, coin_probability, cake_probability]
+
+		#this is done because the random.choices function can't deal with all probabilities being 0. When that happens, we decide that the agent should simply explore
+		if not any(prob_list):
+			prob_list[0]=1
 
 
 		function_list = [self.explore, self.go_to_flower, self.fight_closest, self.go_to_closest_coin, self.go_to_closest_cake]
 
 
-		chosen_action = random.choices(function_list, weights = prob_list, k = 1)[0]
+		chosen_action = random.choices(function_list, weights = prob_list, k = 1)[0]()
 
 		#print(chosen_action)
+		self.previous_action = chosen_action
 
-		return chosen_action()
+
+		return chosen_action
 
 
 

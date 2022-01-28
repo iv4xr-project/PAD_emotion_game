@@ -2653,6 +2653,9 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 	#variable to control the main loop
 	running = True
 
+	pos_file_path = "Traces/Bot_Position_" + map_name + "_" + date_time + ".txt"
+
+	postextfile = open(pos_file_path, 'w')
 
 	world = World(map_height, map_width, 20, map_name, small_fontzy)
 
@@ -2691,10 +2694,14 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 
 	action_list=[]
 
+	counter = 0
+
 	while running:
 
 
 		last_update = time.time()
+
+		world.pos_to_write.append(str(world.player.imagined_x) + "_" + str(world.player.imagined_y) + "\n")
 
 
 		world.update()
@@ -2760,7 +2767,14 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 
 		action = agent.getAction()
 
-		action_list.append(action)
+		actions_to_save = [counter]
+
+		if action == 'n':
+			action_list.append(actions_to_save)
+		else:
+			for letter in action:
+				actions_to_save.append(letter)
+			action_list.append(actions_to_save)
 
 		if action == 'n':
 			world.shift_down = 0
@@ -2914,12 +2928,19 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 		while ((time.time() - last_update) < frame_rate):
 			pass
 
+		counter += 1
+
 
 
 	#perceptor.write_to_file()
 
+	for pos_to_write in world.pos_to_write:
+		postextfile.write(pos_to_write)
 
-	return action_list
+	postextfile.close()
+
+
+	return action_list, pos_file_path
 
 
 
@@ -2952,9 +2973,9 @@ def parameterized_agent_play(parameters, map_name, render):
 
 	agent_type = rule_based_agents.ParameterAgent
 
-	action_list = play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = render)
+	action_list, pos_file_path = play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = render)
 
-	return action_list
+	return action_list, pos_file_path
 
 
 

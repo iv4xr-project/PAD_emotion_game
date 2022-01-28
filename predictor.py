@@ -1302,6 +1302,46 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 
 	# plt.show()
 
+def save_location(location_file, slice_number):
+
+
+	f = open(location_file)
+
+	output = f.readlines()
+
+
+	x_list = []
+	y_list = []
+
+	for inpy in output:
+		x_y = inpy.split("_")
+		x_list.append(int(x_y[0]))
+		y_list.append(-int(x_y[1].replace('\n','')))
+
+
+	fig4 = plt.figure()
+	ax4 = fig4.add_subplot(111)
+	img = plt.imread("./Maps/back_map.png")
+
+	ax4.imshow(img, extent=[-190, 2230, -960, 260])
+
+
+
+	for i in range(len(x_list)):
+		ax4.scatter(x_list[i], y_list[i], c = "blue", alpha=0.1)
+
+	plt.xlabel("Level")
+	plt.ylabel("Ticks")
+	plt.axis('equal')
+
+
+	plt.xlim([-200, 2200])
+	plt.ylim([-1000, 200])
+	fig_name = "Figures/Bots/" + location_file.replace('.txt','') + "_LOC"
+	fig4.savefig(fig_name)
+
+
+
 
 def print_images_folder(folder_name, slice_number):
 
