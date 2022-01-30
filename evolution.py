@@ -5,6 +5,7 @@ import glob
 import infinite_game
 import Levenshtein as lv 
 import predictor
+import gc
 
 class Evo:
 	def __init__(self, population_size, truncation_percentage, mutation_rate, max_generations, cluster_example, map_name):
@@ -123,6 +124,8 @@ class Evo:
 			self.average_fitness_evolution.append(average_fitness)
 			self.best_fitness_evolution.append(best_fitness)
 			self.best_agent_evolution.append(best_agent)
+			gc.collect()
+
 
 
 

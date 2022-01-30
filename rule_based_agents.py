@@ -1260,10 +1260,10 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		
 	def getAction(self):
 
-		explore_preference = self.explore_preference_par/10 * (1 - self.world_explored)
+		explore_preference = (self.explore_preference_par/10 + self.world.ticker/2000) * (1 - self.world_explored) 
 
 		distance_closest_flower, closest_flower = self.closest_manhattan_sprite(self.world.flower_group)
-		flower_preference = self.flower_preference_par * (1/distance_closest_flower) + self.world_explored
+		flower_preference = self.flower_preference_par * (1/distance_closest_flower) + (self.world_explored * self.flower_preference_par + self.world.ticker/1000)
 
 		distance_closest_enemy, closest_enemy = self.closest_manhattan_sprite(self.world.enemy_group)
 		kill_preference = self.kill_preference_par * (1/distance_closest_enemy)
@@ -1287,7 +1287,7 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 
 		explore_probabiliy = (1 - randomness) * (explore_preference * (is_max_list[0] + randomness))
 
-		flower_probability = (1 - randomness) * (flower_preference * (is_max_list[1] + randomness))
+		flower_probability = (1 - randomness) * (flower_preference * (is_max_list[1] + randomness)) 
 
 		kill_probability = (1 - randomness) * (kill_preference * (is_max_list[2] + randomness))
 
