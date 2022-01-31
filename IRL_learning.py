@@ -225,10 +225,20 @@ def load_trajectories(mdp, cluster_id, level):
     t_files = os.listdir(directory)
     trajectories = []
     max_len = 0
+    #load trajectories
     for file in t_files:
         trajectory = load_trajectory(m, file, directory)
-        print(len(trajectory))
+        if max_len < len(trajectory):
+            max_len = len(trajectory)
         trajectories.append(trajectory)
+
+    #make trajectories same shape
+    for trajectory_id in range(len(trajectories)):
+        positions_to_add = max_len - len(trajectories[trajectory_id])
+        if positions_to_add != 0:
+            last_pair = trajectories[trajectory_id][-1]
+            for p in range(positions_to_add):
+                trajectories[trajectory_id].append(last_pair)
 
     return np.array(trajectories)
 
@@ -238,11 +248,8 @@ if __name__=="__main__":
     training_rate = 0.01
     m = MDP()
     trajectories = load_trajectories(m, "2_____10", "Level1")
-    print(trajectories.shape)
-   
-    """
+    
     w = perfrom_irl(m,trajectories, training_epochs, training_rate)
     print(w)
-    """
    
     print("--- %s seconds ---" % (time.time() - start_time))
