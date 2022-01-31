@@ -168,6 +168,7 @@ def load_trajectory(mdp, file):
     trajectory = []
     #is exploring
     exploring = False
+    previous_pair = ()
 
     for l in range(len(lines)-1):
         #action id
@@ -204,8 +205,14 @@ def load_trajectory(mdp, file):
         current_state_id = mdp.get_state_id(current_feature_values)
 
         #generate state-action pair
-        trajectory.append((current_state_id, action_id))
-        
+        if not previous_pair:
+            previous_pair = (current_state_id, action_id)
+            trajectory.append(previous_pair)
+        else:
+            if (current_state_id, action_id) != previous_pair:
+                trajectory.append((current_state_id, action_id))
+                previous_pair = ()
+                
     return trajectory
     
 
