@@ -1,4 +1,6 @@
-from ast import Pass
+#from ast import Pass
+#from msilib.schema import Directory
+import os
 import numpy as np
 import time
 import Maxent_irl as MaxEnt
@@ -162,10 +164,9 @@ def perceptor_line_to_value_array(mdp, line):
 
     return values_list,feature_values
 
-
-def load_trajectory(mdp, file):
+def load_trajectory(mdp, filename, directory):
     #read file
-    file = open(file, "r")
+    file = open((directory + '/' + filename), "r")
     lines = file.readlines()
     #final trajectory
     trajectory = []
@@ -208,22 +209,39 @@ def load_trajectory(mdp, file):
         current_state_id = mdp.get_state_id(current_feature_values)
 
         #generate state-action pair
-        trajectory.append((current_state_id, action_id))
+        if not previous_pair:
+            previous_pair = (current_state_id, action_id)
+            trajectory.append(previous_pair)
+        else:
+            if (current_state_id, action_id) != previous_pair:
+                trajectory.append((current_state_id, action_id))
+            previous_pair = ()
 
     return trajectory
     
+
+def load_trajectories(mdp, cluster_id, level):
+    directory = "Saved_Clusters/" + level + "/" + cluster_id + "/perceptor_data"
+    t_files = os.listdir(directory)
+    trajectories = []
+    max_len = 0
+    for file in t_files:
+        trajectory = load_trajectory(m, file, directory)
+        print(len(trajectory))
+        trajectories.append(trajectory)
+
+    return np.array(trajectories)
 
 if __name__=="__main__":
     start_time = time.time()
     training_epochs = 1
     training_rate = 0.01
     m = MDP()
-    
-    t = [load_trajectory(m, 'Traces_Perceptor_Level1_02-05-2021_20-19-05_703.txt')]
-    trajectory = np.array(t)
-    print(t.shape)
+    trajectories = load_trajectories(m, "2_____10", "Level1")
+    print(trajectories.shape)
+   
     """
-    w = perfrom_irl(m,trajectory, training_epochs, training_rate)
+    w = perfrom_irl(m,trajectories, training_epochs, training_rate)
     print(w)
     """
    
