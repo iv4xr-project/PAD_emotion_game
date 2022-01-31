@@ -101,7 +101,10 @@ class MDP:
         f_matrix = np.zeros((self.n_states, len(self.features)))
         for state in range(self.n_states):
             #f_matrix[state] = (np.array(self.get_features_of_state(state)) + 1) / self.one_feature
-            f_matrix[state] = np.array(self.get_features_of_state(state))
+            features = self.get_features_of_state(state)
+            for i in range(4):
+                features[i] = self.one_feature - 1 - features[i]
+            f_matrix[state] = np.array(features)
         
         return f_matrix
 
@@ -205,14 +208,8 @@ def load_trajectory(mdp, file):
         current_state_id = mdp.get_state_id(current_feature_values)
 
         #generate state-action pair
-        if not previous_pair:
-            previous_pair = (current_state_id, action_id)
-            trajectory.append(previous_pair)
-        else:
-            if (current_state_id, action_id) != previous_pair:
-                trajectory.append((current_state_id, action_id))
-                previous_pair = ()
-                
+        trajectory.append((current_state_id, action_id))
+
     return trajectory
     
 
@@ -224,7 +221,10 @@ if __name__=="__main__":
     
     t = [load_trajectory(m, 'Traces_Perceptor_Level1_02-05-2021_20-19-05_703.txt')]
     trajectory = np.array(t)
+    print(t.shape)
+    """
     w = perfrom_irl(m,trajectory, training_epochs, training_rate)
     print(w)
+    """
    
     print("--- %s seconds ---" % (time.time() - start_time))
