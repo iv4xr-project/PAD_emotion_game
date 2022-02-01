@@ -4,6 +4,7 @@ import numpy as np
 import numpy.random as rn
 import VI
 import time
+from tqdm import tqdm
 
 def irl(feature_matrix, n_actions, discount, transition_probability, trajectories, epochs, learning_rate):
         """
@@ -37,6 +38,7 @@ def irl(feature_matrix, n_actions, discount, transition_probability, trajectorie
         # Gradient descent.
         for i in range(epochs):
                 r = feature_matrix.dot(weights)
+                print("Epoch_")
                 expected_svf = find_expected_svf(n_states, r, n_actions, discount, transition_probability, trajectories)
                 grad = feature_expectations - feature_matrix.T.dot(expected_svf)
 
@@ -120,7 +122,8 @@ def find_expected_svf(n_states, r, n_actions, discount, transition_probability, 
 
         expected_svf = np.tile(p_start_state, (trajectory_length, 1)).T
         total = trajectory_length
-        for t in range(1, trajectory_length):
+        
+        for t in tqdm(range(1, trajectory_length)):
                 expected_svf[:, t] = 0
                 for i, j, k in product(range(n_states), range(n_actions), range(n_states)):
                         

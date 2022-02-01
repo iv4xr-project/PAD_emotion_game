@@ -244,7 +244,7 @@ def load_trajectories(mdp, cluster_id, level):
 
 if __name__=="__main__":
     start_time = time.time()
-    training_epochs = 1
+    training_epochs = 5
     training_rate = 0.01
     m = MDP()
     trajectories = load_trajectories(m, "2_____10", "Level1")
