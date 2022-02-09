@@ -236,7 +236,10 @@ def load_trajectories(mdp, cluster_id, level):
             if p_file in perceptor_files:
                 file_list.append(p_file)
 
-
+    if not file_list:
+        print('no files')
+        quit()
+        
     trajectories = []
     max_len = 0
     #load trajectories
