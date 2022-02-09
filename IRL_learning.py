@@ -4,6 +4,7 @@ import os
 import numpy as np
 import time
 import Maxent_irl as MaxEnt
+import pickle
 
 MAXLIFE = 100
 MIN_DIST = 20
@@ -104,7 +105,7 @@ class MDP:
         for state in range(self.n_states):
             #f_matrix[state] = (np.array(self.get_features_of_state(state)) + 1) / self.one_feature
             features = self.get_features_of_state(state)
-            for i in range(4):
+            for i in range(5):
                 features[i] = self.one_feature - 1 - features[i]
             f_matrix[state] = np.array(features)
         
@@ -185,17 +186,18 @@ def load_trajectory(mdp, filename, directory):
         next_values,_ = perceptor_line_to_value_array(mdp, lines[l+1])
 
         value_distances=[]
-        diferent_v = 0
+        num_of_approachs = 0
         exploring = False
 
         for v in range(4):
-            if current_values[v] - next_values[v] <= 0:
-                diferent_v += 1
-            else:
+            if current_values[v] - next_values[v] > 0:
                 value_distances.append((v,current_values[v] - next_values[v])) 
+                num_of_approachs += 1
 
-        if diferent_v == 4 or diferent_v > 2:
+        if num_of_approachs >= 3 or num_of_approachs == 0:
             action_id = 4
+        elif num_of_approachs == 1:
+            action_id = value_distances[0][0]
         else:
             if value_distances[0][1] > value_distances[1][1]:
                 action_id = value_distances[0][0]
@@ -219,7 +221,6 @@ def load_trajectory(mdp, filename, directory):
 
     return trajectory
     
-
 def load_trajectories(mdp, cluster_id, level):
     directory = "Saved_Clusters/" + level + "/" + cluster_id + "/perceptor_data"
     t_files = os.listdir(directory)
@@ -242,14 +243,41 @@ def load_trajectories(mdp, cluster_id, level):
 
     return np.array(trajectories)
 
+def store_weights_in_file(weight_list, cluster_id, level):
+    weigths_folder = weight_file = 'irl_weights/' + level
+    CHECK_FOLDER = os.path.isdir(weigths_folder)
+
+    # If folder doesn't exist, then create it.
+    if not CHECK_FOLDER:
+        os.makedirs(weigths_folder)
+        print("created folder : ", weigths_folder)
+
+    weight_file = weigths_folder + '/' + cluster_id + '.txt' 
+
+    with open(weight_file, 'wb') as fp:
+        pickle.dump(weight_list, fp)
+
+def load_weigths_from_file(cluster_id, level):
+    weigths_folder = weight_file = 'irl_weights/' + level
+    weight_file = weigths_folder + '/' + cluster_id + '.txt' 
+    with open (weight_file, 'rb') as fp:
+        weight_list = pickle.load(fp)
+    return weight_list
+
 if __name__=="__main__":
     start_time = time.time()
     training_epochs = 5
     training_rate = 0.01
+
+    cluster = '2_____10'
+    level = 'Level1'
+
     m = MDP()
-    trajectories = load_trajectories(m, "2_____10", "Level1")
+    
+    trajectories = load_trajectories(m, cluster, level)
     
     w = perfrom_irl(m,trajectories, training_epochs, training_rate)
     print(w)
-   
+    store_weights_in_file(w,cluster, level)
+    
     print("--- %s seconds ---" % (time.time() - start_time))

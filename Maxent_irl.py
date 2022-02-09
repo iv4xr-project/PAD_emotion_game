@@ -38,7 +38,8 @@ def irl(feature_matrix, n_actions, discount, transition_probability, trajectorie
         # Gradient descent.
         for i in range(epochs):
                 r = feature_matrix.dot(weights)
-                print("Epoch_")
+                ep = i+1
+                print('Epoch_%d' % ep)
                 expected_svf = find_expected_svf(n_states, r, n_actions, discount, transition_probability, trajectories)
                 grad = feature_expectations - feature_matrix.T.dot(expected_svf)
 
