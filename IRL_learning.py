@@ -222,13 +222,26 @@ def load_trajectory(mdp, filename, directory):
     return trajectory
     
 def load_trajectories(mdp, cluster_id, level):
-    directory = "Saved_Clusters/" + level + "/" + cluster_id + "/perceptor_data"
-    t_files = os.listdir(directory)
+    cluster_directory = "Saved_Clusters/" + level + "/" + cluster_id
+    perceptor_dir = "Saved_Clusters/" + level + "/Perceptor"
+    cluster_files = os.listdir(cluster_directory)
+    perceptor_files = os.listdir(perceptor_dir)
+
+    file_list = []
+    for file in cluster_files:
+        if file[-3:] == 'txt':
+            temp_file = file.split('_')
+            temp_file[1] = 'Perceptor'
+            p_file = '_'.join(temp_file)
+            if p_file in perceptor_files:
+                file_list.append(p_file)
+
+
     trajectories = []
     max_len = 0
     #load trajectories
-    for file in t_files:
-        trajectory = load_trajectory(m, file, directory)
+    for file in file_list:
+        trajectory = load_trajectory(m, file, perceptor_dir)
         if max_len < len(trajectory):
             max_len = len(trajectory)
         trajectories.append(trajectory)
@@ -276,8 +289,8 @@ if __name__=="__main__":
     
     trajectories = load_trajectories(m, cluster, level)
     
-    w = perfrom_irl(m,trajectories, training_epochs, training_rate)
-    print(w)
-    store_weights_in_file(w,cluster, level)
+    #w = perfrom_irl(m,trajectories, training_epochs, training_rate)
+    #print(w)
+    #store_weights_in_file(w,cluster, level)
     
     print("--- %s seconds ---" % (time.time() - start_time))
