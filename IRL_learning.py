@@ -5,6 +5,7 @@ import numpy as np
 import time
 import Maxent_irl as MaxEnt
 import pickle
+import concurrent.futures
 
 MAXLIFE = 100
 MIN_DIST = 20
@@ -97,8 +98,7 @@ class MDP:
         value = int( value / feature_distance)
         #if value is equal to one_feature return one_feature
         #so feature array is lenght one_feature
-        return value if value != self.one_feature else (self.one_feature-1)
-    
+        return value if value != self.one_feature else (self.one_feature-1) 
 
     def feature_matrix(self):
         f_matrix = np.zeros((self.n_states, len(self.features)))
@@ -239,7 +239,7 @@ def load_trajectories(mdp, cluster_id, level):
     if not file_list:
         print('no files')
         quit()
-        
+
     trajectories = []
     max_len = 0
     #load trajectories
@@ -269,9 +269,10 @@ def store_weights_in_file(weight_list, cluster_id, level):
         print("created folder : ", weigths_folder)
 
     weight_file = weigths_folder + '/' + cluster_id + '.txt' 
-
-    with open(weight_file, 'wb') as fp:
-        pickle.dump(weight_list, fp)
+    weights = '_'.join(str(w) for w in weight_list)
+    
+    with open(weight_file, 'a') as fp:
+        fp.write(weights)
 
 def load_weigths_from_file(cluster_id, level):
     weigths_folder = weight_file = 'irl_weights/' + level
@@ -280,20 +281,31 @@ def load_weigths_from_file(cluster_id, level):
         weight_list = pickle.load(fp)
     return weight_list
 
+def load_cluster_list(level):
+    cluster_directory = "Saved_Clusters/" + level 
+    cluster_ids = os.listdir(cluster_directory)
+    return cluster_ids
+
+def cluster_irl(mdp, level, cluster, training_epochs, training_rate):
+    print('doing cluster ', cluster)
+    trajectories = load_trajectories(mdp, cluster, level)
+    w = perfrom_irl(m,trajectories, training_epochs, training_rate)
+    print(w)
+    store_weights_in_file(w,cluster, level)
+
 if __name__=="__main__":
     start_time = time.time()
     training_epochs = 5
     training_rate = 0.01
 
-    cluster = '2_____10'
-    level = 'Level1'
-
     m = MDP()
-    
-    trajectories = load_trajectories(m, cluster, level)
-    
-    #w = perfrom_irl(m,trajectories, training_epochs, training_rate)
-    #print(w)
-    #store_weights_in_file(w,cluster, level)
+
+    level = 'Level1'
+    clusters = load_cluster_list(level)
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers= 4) as executor:
+        for cluster in clusters:
+            executor.submit(cluster_irl, m, level, cluster, training_epochs, training_rate)
+        
     
     print("--- %s seconds ---" % (time.time() - start_time))
