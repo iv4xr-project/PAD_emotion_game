@@ -6,6 +6,8 @@ import VI
 import time
 from tqdm import tqdm
 
+STOPPING_CRITERIA = 1e-5
+
 def irl(feature_matrix, n_actions, discount, transition_probability, trajectories, epochs, learning_rate):
         """
         Find the reward function for the given trajectories.
@@ -34,6 +36,7 @@ def irl(feature_matrix, n_actions, discount, transition_probability, trajectorie
         # Calculate the feature expectations \tilde{phi}.
         feature_expectations = find_feature_expectations(feature_matrix, trajectories)
 
+        previous_grad = np.zeros((d_states,))
         
         # Gradient descent.
         for i in range(epochs):
@@ -42,8 +45,15 @@ def irl(feature_matrix, n_actions, discount, transition_probability, trajectorie
                 print('Epoch_%d' % ep)
                 expected_svf = find_expected_svf(n_states, r, n_actions, discount, transition_probability, trajectories)
                 grad = feature_expectations - feature_matrix.T.dot(expected_svf)
-
-                weights += learning_rate * grad
+                if i == 0:
+                        previous_grad = grad
+                else:
+                        grad_difference = grad - previous_grad
+                        if np.sum(grad_difference) < STOPPING_CRITERIA:
+                                break
+                        else:
+                                previous_grad = grad
+                        weights += learning_rate * grad
 
         return weights
 

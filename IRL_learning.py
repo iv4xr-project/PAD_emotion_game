@@ -165,7 +165,7 @@ def perceptor_line_to_value_array(mdp, line):
 
     return values_list,feature_values
 
-def load_trajectory(mdp, filename, directory):
+def load_trajectory(mdp, filename, directory, bin_size = 2):
     #read file
     file = open((directory + '/' + filename), "r")
     lines = file.readlines()
@@ -173,7 +173,9 @@ def load_trajectory(mdp, filename, directory):
     trajectory = []
     #is exploring
     exploring = False
+
     previous_pair = ()
+    traces_in_bin = 0
 
     for l in range(len(lines)-1):
         #action id
@@ -211,13 +213,19 @@ def load_trajectory(mdp, filename, directory):
         current_state_id = mdp.get_state_id(current_feature_values)
 
         #generate state-action pair
-        if not previous_pair:
+        if traces_in_bin == 0:
             previous_pair = (current_state_id, action_id)
             trajectory.append(previous_pair)
+            traces_in_bin += 1
         else:
             if (current_state_id, action_id) != previous_pair:
-                trajectory.append((current_state_id, action_id))
-            previous_pair = ()
+                traces_in_bin = 0
+                previous_pair = (current_state_id, action_id)
+                trajectory.append(previous_pair)
+            traces_in_bin += 1
+        
+        if traces_in_bin == bin_size:
+            traces_in_bin = 0
 
     return trajectory
     
@@ -254,7 +262,7 @@ def load_trajectories(mdp, cluster_id, level):
         positions_to_add = max_len - len(trajectories[trajectory_id])
         if positions_to_add != 0:
             last_pair = trajectories[trajectory_id][-1]
-            for p in range(positions_to_add):
+            for _ in range(positions_to_add):
                 trajectories[trajectory_id].append(last_pair)
 
     return np.array(trajectories)
@@ -284,6 +292,7 @@ def load_weigths_from_file(cluster_id, level):
 def load_cluster_list(level):
     cluster_directory = "Saved_Clusters/" + level 
     cluster_ids = os.listdir(cluster_directory)
+    cluster_ids.remove('Perceptor')
     return cluster_ids
 
 def cluster_irl(mdp, level, cluster, training_epochs, training_rate):
@@ -303,9 +312,16 @@ if __name__=="__main__":
     level = 'Level1'
     clusters = load_cluster_list(level)
 
+    print(clusters)
+    cluster = '15_____8'
+    trajectories = load_trajectories(m, cluster, level)
+    w = perfrom_irl(m,trajectories, training_epochs, training_rate)
+    
+    """
     with concurrent.futures.ProcessPoolExecutor(max_workers= 4) as executor:
         for cluster in clusters:
             executor.submit(cluster_irl, m, level, cluster, training_epochs, training_rate)
         
+    """
     
     print("--- %s seconds ---" % (time.time() - start_time))
