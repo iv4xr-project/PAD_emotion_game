@@ -16,6 +16,8 @@ from tensorflow.keras.layers import InputLayer
 from tensorflow.keras.callbacks import EarlyStopping
 from numpy.random import seed
 from tensorflow.random import set_seed
+import matplotlib
+matplotlib.use('Qt5Agg')  #'Qt5Agg'
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MultiLabelBinarizer
 from imblearn.over_sampling import SMOTE 
@@ -112,6 +114,44 @@ def new_get_processed_data(input_path, output_file, slice_number):
 	return new_data, forest_output, neural_output
 
 
+def new_get_processed_data_no_output(input_path, slice_number):
+
+	my_data = np.genfromtxt(input_path, delimiter='_')
+
+
+	seconds_since = my_data[:, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]]   #[12, 13, 14]
+	my_data = my_data[:, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]]
+
+
+	new_data = np.zeros((int(len(my_data) - slice_number), len(my_data[0])))
+
+	for i in range(0, len(my_data) - slice_number):
+
+		for j in range(len(my_data[0])):
+
+			if (my_data[i + slice_number][j] > 99999 or my_data[i + slice_number][j] < -99999 or my_data[i][j] > 99999 or my_data[i][j] < -99999):
+				new_data[int(i/slice_number)][j] = 0
+
+			else:
+				new_data[i][j] = my_data[i + slice_number][j] - my_data[i][j]
+
+	seconds_since[seconds_since == inf] = 425 #max distance from the player in a 600x600 map
+
+	new_seconds =np.zeros((int(len(seconds_since) - slice_number), len(seconds_since[0])))
+
+	for i in range(0, len(seconds_since) - slice_number):
+
+		for j in range(len(seconds_since[0])):
+
+			new_seconds[i][j] = seconds_since[i][j]
+
+
+	new_data = np.concatenate((new_data, new_seconds), axis=1)
+
+
+	return new_data
+
+
 
 def get_behavioural_data(input_path, output_file):
 
@@ -185,7 +225,6 @@ def get_behavioural_data(input_path, output_file):
 
 
 	return new_data, forest_output, nn_output
-
 
 
 
@@ -1034,120 +1073,126 @@ def test_forests(slice_number, balance_data):
 
 	max_acc = 0
 
-	for min_samples_leaf_num in range(1,60):
+	min_samples_leaf_num = 1
+
+	#for min_samples_leaf_num in range(1,60):
 
 
-		print("########################## ---->", min_samples_leaf_num)
-
-
-
-		print_list = [[], [], []]
-
-		print_counter = 0
+	print("########################## ---->", min_samples_leaf_num)
 
 
 
-		for dim in dimensions:
+	print_list = [[], [], []]
 
-			print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
-
-
-			dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
-
-			dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
-
-			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
-
-			dim_accuracy = 0
-
-			forest_accuracy = 0
-
-			rangy = len(my_data_list)
-
-			mse_sum = 0 
-			negative_per_sum = 0
-			positive_per_sum = 0
-			correct_pol_sum = 0
-			forgiving_pol_sum = 0
-			sum_confusion_matrix = np.zeros((3,3))
-
-			my_data_list, my_output_list = shuffle(my_data_list, my_output_list)
-
-
-			test_division = 0.2
-
-
-			clf = RandomForestClassifier(n_estimators = 1000, random_state = 42, criterion = "gini", n_jobs = 4, min_samples_leaf = min_samples_leaf_num, oob_score = True)  #class_weight = "balanced"
-
-
-			my_data, forest_output, neural_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
+	print_counter = 0
 
 
 
-			for i in range(1, len(my_data_list)):
+	for dim in dimensions:
 
-				prov_data, prov_forest, neural_output  = new_get_processed_data(my_data_list[i], my_output_list[i],slice_number)
-				my_data = np.concatenate((my_data, prov_data), axis=0)
-				forest_output = np.concatenate((forest_output, prov_forest), axis=0)
+		print("\n\n\n\n\n\n\n\n\n\nDimension: " + dim)
 
 
+		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
 
-			prediction_my_data = my_data[:int(len(my_data)*test_division)]
+		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
 
-			prediction_forest_output = forest_output[:int(len(forest_output)*test_division)]
+		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
 
-			my_data = my_data[int(len(my_data)*test_division):]
+		dim_accuracy = 0
 
-			forest_output = forest_output[int(len(forest_output)*test_division):]
+		forest_accuracy = 0
 
+		rangy = len(my_data_list)
 
-			if balance_data:
+		mse_sum = 0 
+		negative_per_sum = 0
+		positive_per_sum = 0
+		correct_pol_sum = 0
+		forgiving_pol_sum = 0
+		sum_confusion_matrix = np.zeros((3,3))
 
-				balanced_my_data_forest, balanced_my_output_forest = sm.fit_resample(my_data, forest_output)
-			
-			#print(np.bincount(np.ravel(balanced_my_output_forest).astype(int)))
-			else:
-
-				balanced_my_data_forest = my_data
-				balanced_my_output_forest = forest_output
-
-
-			clf.fit(balanced_my_data_forest, balanced_my_output_forest)
+		my_data_list, my_output_list = shuffle(my_data_list, my_output_list)
 
 
-
-			#my_data, forest_output, neural_output  = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
-
-
-			forest_predict = clf.predict(prediction_my_data)
+		test_division = 0.2
 
 
-			for_acc = accuracy_score(prediction_forest_output, forest_predict)
-
-			conf_mat = confusion_matrix(prediction_forest_output, forest_predict, labels = [0., 1., 2.])
+		clf = RandomForestClassifier(n_estimators = 1000, random_state = 42, criterion = "gini", n_jobs = -1, min_samples_leaf = min_samples_leaf_num, oob_score = True)  #class_weight = "balanced"
 
 
 
-			print(clf.feature_importances_)
-
-			print("Accuracy: ", for_acc)
-
-			print(conf_mat)
+		my_data, forest_output, neural_output = new_get_processed_data(my_data_list[0], my_output_list[0], slice_number)
 
 
 
+		for i in range(1, len(my_data_list)):
 
-			forest_accuracy += for_acc
+			prov_data, prov_forest, neural_output  = new_get_processed_data(my_data_list[i], my_output_list[i],slice_number)
+			my_data = np.concatenate((my_data, prov_data), axis=0)
+			forest_output = np.concatenate((forest_output, prov_forest), axis=0)
 
-			sum_confusion_matrix = sum_confusion_matrix + conf_mat
 
-			dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
 
-			dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+		prediction_my_data = my_data[:int(len(my_data)*test_division)]
 
-			my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+		prediction_forest_output = forest_output[:int(len(forest_output)*test_division)]
 
+		my_data = my_data[int(len(my_data)*test_division):]
+
+		forest_output = forest_output[int(len(forest_output)*test_division):]
+
+
+		if balance_data:
+
+			balanced_my_data_forest, balanced_my_output_forest = sm.fit_resample(my_data, forest_output)
 		
+		#print(np.bincount(np.ravel(balanced_my_output_forest).astype(int)))
+		else:
+
+			balanced_my_data_forest = my_data
+			balanced_my_output_forest = forest_output
+
+
+		clf.fit(balanced_my_data_forest, balanced_my_output_forest)
+
+
+
+		#my_data, forest_output, neural_output  = new_get_processed_data(prediction_data_list[0], prediction_output_list[0], slice_number)
+
+
+		forest_predict = clf.predict(prediction_my_data)
+
+
+		for_acc = accuracy_score(prediction_forest_output, forest_predict)
+
+		conf_mat = confusion_matrix(prediction_forest_output, forest_predict, labels = [0., 1., 2.])
+
+
+
+		print(clf.feature_importances_)
+
+		print("Accuracy: ", for_acc)
+
+		print(conf_mat)
+
+
+
+
+		forest_accuracy += for_acc
+
+		sum_confusion_matrix = sum_confusion_matrix + conf_mat
+
+		dirty_data_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_Perceptor*.txt"))
+
+		dirty_output_list = sorted(glob.glob("./First_Study/" + dim + "/Traces_" + dim + "*.txt"))
+
+		my_data_list, my_output_list = remove_outliers(dirty_data_list, dirty_output_list)
+
+		#Save the predictor
+		dump(clf, "trained_forest_" + dim + ".pkl")
+
+	
 
 
 
@@ -1169,6 +1214,7 @@ def save_dimension_over_time(file_name):
 	plt.ylabel("Level")
 	fig_name = "Figures/" + file_name.replace('.txt','')
 	fig4.savefig(fig_name)
+
 
 
 
@@ -1208,14 +1254,16 @@ def save_location_over_time(file_name):
 
 
 
-def save_dimension_over_location(location_file, dimension_file, slice_number):
+def save_dimension_over_location(location_file, dimension_file, slice_number, show = False):
 
 
 	f = open(location_file)
 
 	output = f.readlines()
-
-
+# #######
+# 	print(location_file)
+# 	print("Len of initial output: ", len(output))
+# #######
 	x_list = []
 	y_list = []
 
@@ -1227,31 +1275,64 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 
 	dimension = np.genfromtxt(dimension_file)
 
+	# print("Len of previous dimension: ", len(dimension))
+
 	dimension = dimension[..., None]
 
-	new_output = np.zeros((int(len(dimension)/slice_number),1))
 
-	for i in range(0, len(dimension) - slice_number, slice_number):
+# #######
+# 	print(dimension)
+# 	print("Len of dimension: ", len(dimension))
+# #######	
 
-		new_output[int(i/slice_number)][0] = dimension[i + slice_number][0] - dimension[i][0]
+
+	new_output = np.zeros((int(len(dimension)),1))
+
+	for i in range(0, len(dimension) - slice_number):
+
+		new_output[i][0] = dimension[i + slice_number][0] - dimension[i][0]
 
 
 	#data, output = get_processed_data(input_path, output_file)
 
 	colour_list = []
 
+
+# ######	
+# 	print(new_output)
+# 	print("Len of new output: ", len(new_output))
+
+# 	print("Len of x_list: ", len(x_list))
+# ######
+
+	size_dif = len(x_list)/len(new_output)
+	# print("Size Dif: ", size_dif)
+
+
+	counter = 0
+	remainder = 0
+
 	for i in range(len(new_output)):
 
-		colour_code = 'k'
+		float_times = size_dif + remainder
 
-		# if new_output[i][0] <= -1:
-		# 	colour_code = 'r'
+		times = math.trunc(float_times)
 
-		if new_output[i][0] >= 1:
-			colour_code = 'g'
+		remainder = float_times - times
+		for _ in range(times):
 
-		for j in range(24):
+			colour_code = 'k'
+
+			# if new_output[i][0] <= -1:
+			# 	colour_code = 'r'
+
+			if new_output[i][0] >= 1:
+				colour_code = 'g'
+
+
 			colour_list.append(colour_code)
+
+	# print("Len of Colour List: ", len(colour_list))
 
 
 
@@ -1272,8 +1353,6 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 	for i in range(len(x_list)):
 		ax4.scatter(x_list[i], y_list[i], c = colour_list[i], alpha=0.1)
 
-	plt.xlabel("Level")
-	plt.ylabel("Ticks")
 	plt.axis('equal')
 
 
@@ -1281,6 +1360,9 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 	plt.ylim([-1000, 200])
 	fig_name = "Figures/" + dimension_file.replace('.txt','') + "_DIMENSION_LOC"
 	fig4.savefig(fig_name)
+
+	if show:
+		plt.show()
 
 
 	#idea: use this but with for loops to create a lot of tiny sections (1 or 3 seconds?).
@@ -1302,7 +1384,139 @@ def save_dimension_over_location(location_file, dimension_file, slice_number):
 
 	# plt.show()
 
-def save_location(location_file, slice_number):
+
+
+
+
+
+def save_dimension_over_location_predicted(location_file, prediction_output, slice_number, show = False):
+
+
+	f = open(location_file)
+
+	output = f.readlines()
+
+
+	x_list = []
+	y_list = []
+
+	for inpy in output:
+		x_y = inpy.split("_")
+		x_list.append(int(x_y[0]))
+		y_list.append(-int(x_y[1].replace('\n','')))
+
+
+	# dimension = np.genfromtxt(dimension_file)
+
+	# dimension = dimension[..., None]
+
+	# new_output = np.zeros((int(len(dimension)/slice_number),1))
+
+	# for i in range(0, len(dimension) - slice_number, slice_number):
+
+	# 	new_output[int(i/slice_number)][0] = dimension[i + slice_number][0] - dimension[i][0]
+
+	new_output = prediction_output
+	#data, output = get_processed_data(input_path, output_file)
+
+	colour_list = []
+
+	for i in range(len(new_output)):
+
+		colour_code = 'k'
+
+		# if new_output[i][0] <= -1:
+		# 	colour_code = 'r'
+
+		if new_output[i] >= 1:
+			colour_code = 'g'
+
+
+		colour_list.append(colour_code)
+
+
+	print("C_list_sizw: ", len(colour_list))
+
+	print("X_list_sizw: ", len(x_list))
+
+	while(len(x_list) > len(colour_list)):
+		colour_list.append(colour_list[len(colour_list)-1])
+
+
+
+
+	fig4 = plt.figure()
+	ax4 = fig4.add_subplot(111)
+	img = plt.imread("./Maps/back_map.png")
+
+	ax4.imshow(img, extent=[-190, 2230, -960, 260])
+
+
+
+	for i in range(len(x_list)):
+		ax4.scatter(x_list[i], y_list[i], c = colour_list[i], alpha=0.1)
+
+	plt.axis('equal')
+
+
+	plt.xlim([-200, 2200])
+	plt.ylim([-1000, 200])
+	fig_name = "Figures/full_pipeline_testing"
+	fig4.savefig(fig_name)
+
+	if show:
+		print("Showing!")
+		plt.show()
+
+
+
+
+
+
+
+
+
+
+
+def save_location_green(location_file, slice_number):
+
+
+	f = open(location_file)
+
+	output = f.readlines()
+
+
+	x_list = []
+	y_list = []
+
+	for inpy in output:
+		x_y = inpy.split("_")
+		x_list.append(int(x_y[0]))
+		y_list.append(-int(x_y[1].replace('\n','')))
+
+
+	fig4 = plt.figure()
+	ax4 = fig4.add_subplot(111)
+	img = plt.imread("./Maps/back_map.png")
+
+	ax4.imshow(img, extent=[-190, 2230, -960, 260])
+
+
+
+	for i in range(len(x_list)):
+		ax4.scatter(x_list[i], y_list[i], c = "green", alpha=0.1)
+
+	plt.axis('equal')
+
+
+	plt.xlim([-200, 2200])
+	plt.ylim([-1000, 200])
+	fig_name = "Figures/" + location_file.replace('.txt','') + "_GREEN"
+	fig4.savefig(fig_name)
+
+
+
+def save_location(location_file, slice_number, save_name):
 
 
 	f = open(location_file)
@@ -1330,15 +1544,47 @@ def save_location(location_file, slice_number):
 	for i in range(len(x_list)):
 		ax4.scatter(x_list[i], y_list[i], c = "blue", alpha=0.1)
 
-	plt.xlabel("Level")
-	plt.ylabel("Ticks")
 	plt.axis('equal')
 
 
 	plt.xlim([-200, 2200])
 	plt.ylim([-1000, 200])
-	fig_name = "Figures/Bots/" + location_file.replace('.txt','') + "_LOC"
+	fig_name = save_name
 	fig4.savefig(fig_name)
+
+
+
+def print_fitness_evolution(folder_name):
+
+	files = glob.glob(folder_name + "/*.txt")
+
+	fig4 = plt.figure()
+	ax4 = fig4.add_subplot(111)
+
+	for file in files:
+		f = open(file)
+		output = f.readlines()[3]
+		print(output)
+		f.close()
+
+		output_list = output.replace("Best Fitness Evolution: [", "").replace("]\n", "").split(", ")
+		int_output_list = []
+		for element in output_list:
+			int_output_list.append(int(element))
+		print(int_output_list)
+		numbering = range(len(int_output_list))
+
+		ax4.plot(numbering, int_output_list)
+
+
+
+
+	plt.xlabel("Generations")
+	plt.ylabel("Fitness")
+	plt.ylim([-1500, 0])
+	fig_name = "Figures/Personas/fitness_over_time"
+	fig4.savefig(fig_name)
+
 
 
 
@@ -1353,7 +1599,6 @@ def print_images_folder(folder_name, slice_number):
 	position_traces_list = sorted(position_arousal_traces_list + position_pleasure_traces_list + position_dominance_traces_list)
 
 
- #We need to solve this folder thingy things! Doesn't work like this
 
 	arousal_traces_list = glob.glob(folder_name + "/Arousal/Traces_Arousal*.txt")
 	pleasure_traces_list = glob.glob(folder_name + "/Pleasure/Traces_Pleasure*.txt")
@@ -1362,8 +1607,14 @@ def print_images_folder(folder_name, slice_number):
 	dimension_traces_list = sorted(arousal_traces_list + pleasure_traces_list + dominance_traces_list)
 
 	for i in range(len(position_traces_list)):
+
+		print(i)
 		save_dimension_over_time(dimension_traces_list[i])
 		save_dimension_over_location(position_traces_list[i], dimension_traces_list[i], slice_number)
+		save_location_green(position_traces_list[i], slice_number)
+
+
+
 
 
 
@@ -1415,7 +1666,7 @@ def behavioural_trainer():
 
 	
 
-	clf = RandomForestClassifier(n_estimators = 300, random_state=42, criterion = "gini")  #class_weight = "balanced"
+	clf = RandomForestClassifier(n_estimators = 100, random_state=42, criterion = "gini")  #class_weight = "balanced"
 
 
 
@@ -1441,7 +1692,7 @@ def behavioural_trainer():
 
 	dump(clf, 'trained_forest.pkl')
 
-	print(clf.feature_importances)
+	#print(clf.feature_importances)
 
 
 
@@ -1461,6 +1712,19 @@ def behaviour_predict(inputs, trained_model):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 def main():
 	
 	seed(7)
@@ -1469,27 +1733,24 @@ def main():
 	slice_number = 4
 	balance_data = True
 
-	#binary_neural_trainer(slice_number, balance_data)
-
-	#number_crawlwer()
-
-	#new_leave_one_out(slice_number, balance_data)
-
 	#test_forests(slice_number, balance_data)
+
 
 	#behavioural_trainer()
 
 	print_images_folder("First_Study", slice_number)
 
-	#inputs = "inf_inf_inf_0_0_0_0_0_0_0_0_0_0_0_0_inf_100_0_0_0_[[359, 359, 359, 354, 354, 354, 354, 354, 345, 345, 345, 345, 345, 345, 345, 345, 354, 354, 354, 354, 354, 359, 359, 359, 359, 359, 357, 357, 357, 357, 350, 350, 350, 350, 350, 339, 339, 339, 339, 325, 325, 325, 309, 292, 274, 256, 218, 141, 0, 0, 0, 182, 259, 278, 314, 314, 331, 331, 346, 346, 346, 346, 359, 359, 359, 359, 359, 367, 367, 367, 367, 367, 367, 369, 369, 369, 369, 369, 369, 363, 363, 363, 363, 363, 363, 353, 353, 353, 353, 353, 350, 350, 350, 350, 357, 357, 357, 357, 359, 359]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]_[[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]"
-
 	#get_behavioural_input(inputs)
 
-	# trained_model_file = 'trained_forest.pkl'
+	#trained_model_file = 'trained_forest_Pleasure.pkl'
+
 
 	# trained_model = load(trained_model_file)
 
 	# behaviour_predict(inputs, trained_model)
+
+
+	#print_fitness_evolution("Saved_Personas_60gen_5par/Persona_Evolution/Level1")
 
 
 if __name__=="__main__":

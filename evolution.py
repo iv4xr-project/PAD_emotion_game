@@ -34,9 +34,7 @@ class Evo:
 
 		for parameter_num in range(population_size):
 
-			individual = random.choices(range(0, 11), k = 9)
-
-			individual[5] = 0
+			individual = random.choices(range(0, 101), k = 10)
 
 			self.population.append(individual)
 
@@ -56,7 +54,7 @@ class Evo:
 
 		#fitness = - trace_processor.lev_distance(action_string, cluster_example)
 
-		fitness = - trace_processor.len_discounted_lev_distance(action_string, cluster_example)
+		fitness = - trace_processor.len_discounted_lev_distance(action_string, self.cluster_example)
 
 		# print("Action String: ", action_string)
 		# print("Cluster: ", cluster_example)
@@ -95,10 +93,8 @@ class Evo:
 			#create a child that is a mixture of both with a sprinkle of mutation
 			child = []
 			for parameter_num in range(len(parents[0])):
-				if parameter_num == 5:
-					parameter = 0
-				elif random.uniform(0, 1) < self.mutation_rate:
-					parameter = random.randint(0,10)
+				if random.uniform(0, 1) < self.mutation_rate:
+					parameter = random.randint(0,100)
 				else:
 					parameter = random.choice([parents[0][parameter_num], parents[1][parameter_num]])
 				child.append(parameter)
@@ -107,9 +103,6 @@ class Evo:
 		new_population = survivors + children
 
 		return new_population, average_fitness, best_agent, best_fitness
-
-
-
 
 
 		
@@ -127,48 +120,123 @@ class Evo:
 			gc.collect()
 
 
+def run_evolution_exemplars(population_size, truncation_percentage, mutation_rate, max_generations, map_name):
+
+	cluster_exemplars_list = glob.glob("./Saved_Clusters/" + map_name + "/*/cluster_exemplar.txt")
+
+	print(cluster_exemplars_list)
+
+
+	for cluster_file in cluster_exemplars_list:
+
+		f = open(cluster_file)
+
+		cluster_example_file = f.read()
+
+		f.close()
+
+		cluster_example = trace_processor.actions_to_string_translator(trace_processor.file_to_actions_translator(cluster_example_file))
+		#We need to get them from the trace_processor file and chose the one we are interested in
+
+		evo = Evo(population_size, truncation_percentage, mutation_rate, max_generations, cluster_example, map_name)
+
+		evo.run_evolution()
+
+		save_name = "./Saved_Personas/Persona_Evolution" + cluster_file.replace("\\", "/").replace("/cluster_exemplar", "").replace("./Saved_Clusters", "")
+
+		file = open(save_name, 'a')
+
+		file.write("\nFinal Population: " + str(evo.population))
+
+		print("\n\n\nFinal Population: ", evo.population)
+
+		file.write("\nAverage Fitness Evolution: " + str(evo.average_fitness_evolution))
+
+		print("\n\n\nAverage Fitness Evolution: ", evo.average_fitness_evolution)
+
+		file.write("\nBest Fitness Evolution: " + str(evo.best_fitness_evolution))
+
+		print("\n\n\nBest Fitness Evolution: ", evo.best_fitness_evolution)
+
+		file.write("\nBest Agent Evolution: " + str(evo.best_agent_evolution))
+
+		print("\n\n\nBest Agent Evolution: ", evo.best_agent_evolution)
+
+		#Save trace of best agent
+
+		fitness, action_string, pos_file_path = evo.get_fitness(evo.best_agent_evolution[-1])
+
+		save_name = "./Saved_Personas/Location_Traces" + cluster_file.replace("\\", "/").replace("/cluster_exemplar", "").replace("./Saved_Clusters", "").replace(".txt", "")
+
+		predictor.save_location(pos_file_path, 1, save_name)
+
+
+def run_evolution_all_traces(population_size, truncation_percentage, mutation_rate, max_generations):
+
+
+
+	traces_list = glob.glob("./First_Study/*/Traces_Actions_*.txt")
 
 
 
 
 
+	for trace_file in traces_list:
 
+
+		cluster_example = trace_processor.actions_to_string_translator(trace_processor.file_to_actions_translator(trace_file))
+		#We need to get them from the trace_processor file and chose the one we are interested in
+
+		map_name = trace_file.split("Traces_Actions_")[1][:6]
+
+		evo = Evo(population_size, truncation_percentage, mutation_rate, max_generations, cluster_example, map_name)
+
+		evo.run_evolution()
+
+		save_name = "./Saved_Personas/Persona_Evolution/" + trace_file.replace("\\", "/").split("/")[-1]
+
+		file = open(save_name, 'a')
+
+		file.write("\nFinal Population: " + str(evo.population))
+
+		print("\n\n\nFinal Population: ", evo.population)
+
+		file.write("\nAverage Fitness Evolution: " + str(evo.average_fitness_evolution))
+
+		print("\n\n\nAverage Fitness Evolution: ", evo.average_fitness_evolution)
+
+		file.write("\nBest Fitness Evolution: " + str(evo.best_fitness_evolution))
+
+		print("\n\n\nBest Fitness Evolution: ", evo.best_fitness_evolution)
+
+		file.write("\nBest Agent Evolution: " + str(evo.best_agent_evolution))
+
+		print("\n\n\nBest Agent Evolution: ", evo.best_agent_evolution)
+
+		#Save trace of best agent
+
+		fitness, action_string, pos_file_path = evo.get_fitness(evo.best_agent_evolution[-1])
+
+		save_name = "./Saved_Personas/Location_Traces/" + trace_file.replace("\\", "/").split("/")[-1].replace(".txt", "")
+
+		predictor.save_location(pos_file_path, 1, save_name)
 
 
 
 if __name__ == '__main__':
 
 
-	population_size = 200
-	truncation_percentage = 0.2
-	mutation_rate = 0.4
-	max_generations = 20
+	population_size = 10
+	truncation_percentage = 0.3
+	mutation_rate = 0.2
+	max_generations = 2
 
-	map_name = "Level2"
-
-	cluster_example = trace_processor.actions_to_string_translator(trace_processor.file_to_actions_translator("./Saved_Clusters/Level2/2_____15/Traces_Actions_Level2_26-04-2021_11-25-09_453.txt"))
-	#We need to get them from the trace_processor file and chose the one we are interested in
+	map_name = "Level1"
 
 
+	#run_evolution_exemplars(population_size, truncation_percentage, mutation_rate, max_generations, map_name)
 
-	evo = Evo(population_size, truncation_percentage, mutation_rate, max_generations, cluster_example, map_name)
-
-	evo.run_evolution()
-
-	print("\n\n\nFinal Population: ", evo.population)
-
-	print("\n\n\nAverage Fitness Evolution: ", evo.average_fitness_evolution)
-
-	print("\n\n\nBest Fitness Evolution: ", evo.best_fitness_evolution)
-
-	print("\n\n\nBest Agent Evolution: ", evo.best_agent_evolution)
-
-	#Save trace of best agent
-
-	fitness, action_string, pos_file_path = evo.get_fitness(evo.best_agent_evolution[-1])
-
-	predictor.save_location(pos_file_path, 1)
-
+	run_evolution_all_traces(population_size, truncation_percentage, mutation_rate, max_generations)
 
 
 
