@@ -1,4 +1,5 @@
 from flower_hunter import *
+import time
 
 
 
@@ -312,13 +313,15 @@ class Env():
 # The Main running function
 def main():
 
-	env = Env("Level2", saving_data = False)
+	env = Env("Level3", saving_data = False)
 
 	observation, info = env.reset()
 
-	for i in range(10):
+	init_time = time.time()
+
+	for i in range(20):
 		#print(i)
-		for j in range(5000):
+		for j in range(100):
 
 			#print(j)
 
@@ -326,11 +329,15 @@ def main():
 				observation, reward, done, info = env.step(random.choice(env.action_space))
 			else:
 				observation, reward, done, info = env.step("d")
-			env.render()
+			#env.render()
 			if done:
 				observation, info = env.reset()
 
 		observation, info = env.reset()
+
+	final_time = time.time() - init_time
+
+	print("Done in: ", final_time)
 
 	env.close()
 

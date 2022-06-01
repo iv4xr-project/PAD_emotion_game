@@ -701,9 +701,9 @@ class Perceptor(object):
 	def write_to_file(self):
 
 		for savvy in self.to_save_buffer:
-			for lil_savvy in savvy:
-				self.save_file.write(lil_savvy)
-				self.save_file.write('\n')
+			# for lil_savvy in savvy:
+			self.save_file.write(str(savvy))
+			self.save_file.write('\n')
 
 		self.save_file.close()
 
@@ -853,6 +853,7 @@ class World(object):
 
 		self.iterator_square = Iterator_Square(self, 20)
 
+
 		
 
 
@@ -927,7 +928,8 @@ class World(object):
 				elif letter == "p":
 					player_x = column_count*self.tile_size
 					player_y = line_count*self.tile_size
-
+					self.player_initial_x = player_x
+					self.player_initial_y = player_y
 
 					# #To Remove
 					# self.playerx = column_count*self.tile_size
@@ -941,6 +943,11 @@ class World(object):
 
 				column_count += 1
 			line_count += 1
+
+
+		for grasser in self.tile_group:
+			self.grass_surface.blit(grasser.image, grasser.rect)
+
 
 		for dudette in self.all_group:
 			dudette.rect.x += self.screen_height/2 -15 - player_x
@@ -956,8 +963,8 @@ class World(object):
 
 
 
-		for grasser in self.tile_group:
-			self.grass_surface.blit(grasser.image, grasser.rect)
+		# for grasser in self.tile_group:
+		# 	self.grass_surface.blit(grasser.image, grasser.rect)
 
 
 	def check_x_movement(self):
@@ -1120,7 +1127,7 @@ class World(object):
 		self.screen.fill((255,255,255))
 
 
-		self.screen.blit(self.grass_surface, (-self.player.imagined_x,-self.player.imagined_y))
+		self.screen.blit(self.grass_surface, (-self.player.imagined_x - self.player_initial_x + self.screen_width/2 - self.player.x_size/2, -self.player.imagined_y- self.player_initial_y + self.screen_height/2 - self.player.y_size/2))
 		self.collide_group.draw(self.screen)
 		self.flower_group.draw(self.screen)
 		self.food_group.draw(self.screen)
@@ -3268,7 +3275,7 @@ def main():
 
 	# gen_traces = sorted(glob.glob("./Generated_Traces/*.txt"))
 
-	# num_directions = 100
+	# num_directions = 8
 
 	# frame_rate = 0.0
 
@@ -3305,16 +3312,20 @@ def main():
 #										                                                                        #
 #################################################################################################################
 
+	for num in range(8,9):
 
-	map_name = "Level1"
+		print(num)
 
-	num_directions = 200 #Needs to be divisable by 8
 
-	agent_type = rule_based_agents.ParameterAgent
+		map_name = "Level" + str(num)
 
-	parameters = [80, 100, 0, 0, 60, 0, 60, 50, 50, 100]
+		num_directions = 200 #Needs to be divisable by 8
 
-	play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+		agent_type = rule_based_agents.ParameterAgent
+
+		parameters = [80, 100, 30, 0, 60, 0, 60, 50, 50, 60]
+
+		play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
 
 
 #################################################################################################################

@@ -43,6 +43,9 @@ class BasicAgent:
 		self.left_unknown = []
 		self.right_unknown = []
 
+
+		self.passed_ticks = 0
+
 		#self.visited_array = [0] * self.world.perceptor.num_directions
 
 
@@ -1428,7 +1431,7 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 
 		prob_list = [explore_probabiliy, flower_probability, kill_probability, coin_probability, cake_probability]
 
-		print("Prob List: ", prob_list)
+		#print("Prob List: ", prob_list)
 
 		#this is done because the random.choices function can't deal with all probabilities being 0. When that happens, we decide that the agent should simply explore
 		if not any(prob_list):
@@ -1442,7 +1445,7 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 
 		chosen_action = chosen_function()
 
-		print(chosen_function)
+		#print(chosen_function)
 		self.previous_action = chosen_action
 
 		self.passed_ticks += 1

@@ -940,10 +940,194 @@ def parameter_based_afinity_clustering(glob_file_path):
 		counter += 1
 
 
+def get_pad_classes(dimension_file, slice_number = 1):
+
+	dimension = np.genfromtxt(dimension_file)
+
+	dimension = dimension[..., None]
+
+	new_output = [0]*int(len(dimension))
+
+	for i in range(0, len(dimension) - slice_number):
+
+		if dimension[i + slice_number][0] - dimension[i][0] > 0:
+			new_output[i] = 1
+
+
+	return new_output
+
+
+def get_pad_raw(dimension_file):
+
+	dimension = np.genfromtxt(dimension_file)
+
+	dimension = dimension[..., None]
+
+	return dimension
+
+
+
+def get_pad_expanded_to_action_lenght(glob_file_path):
+
+	dimensions = ["Pleasure", "Arousal", "Dominance"]
+
+	for dim in dimensions:
+
+		files_actions = sorted(glob.glob(glob_file_path + "/" + dim + "*/Traces_Actions*.txt"))
+		files_pad =sorted(glob.glob(glob_file_path + "/" + dim + "/Traces_" + dim + "*.txt"))
+
+		for i in range(len(files_actions)):
+			actions = list(actions_to_string_translator(file_to_actions_translator(files_actions[i])))
+			pad_raw = get_pad_raw(files_pad[i])
+
+			size_dif = len(actions)/len(pad_raw)
+			counter = 0
+			remainder = 0
+			pad_new_list = []
+
+			for j in range(len(pad_raw)):
+
+				float_times = size_dif + remainder
+				times = math.trunc(float_times)
+				remainder = float_times - times
+				for _ in range(times):
+					pad_new_list.append(pad_raw[j][0])
+
+			while(len(actions)>len(pad_new_list)):
+				pad_new_list.append(pad_new_list[-1])
+
+
+			f = open("./Expanded_PAD_First_Study/" + dim + "/" + files_pad[i].split('/')[3], 'w+')
+
+			f_act = open("./Expanded_PAD_First_Study/" + dim + "/" + files_actions[i].split('/')[3], 'w+')
+
+			for paddy_boy in pad_new_list:
+				f.write(str(paddy_boy))
+				f.write("\n")
+
+			for acty_boy in actions:
+				f_act.write(str(acty_boy))
+				f_act.write("\n")
+
+
+			f.close()
+			f_act.close()
+
+
+def get_csv_dataset(glob_file_path):
+
+	dimensions = ["Pleasure", "Arousal", "Dominance"]
+
+	for dim in dimensions:
+
+		header = "player_unique_id; map_name; action; " + str(dim) + "; distance_closest_enemy; distance_closest_food_item; distance_closest_coin; number_enemies_view; number_food_item_view; number_coins_view; sum_enemy_values; sum_food_item_values; sum_coins_values; sum_value_slash_distance_enemies; sum_value_slash_distance_food_item; sum_value_slash_distance_coins; seconds_since_enemy; seconds_since_food_item; seconds_since_coin; distance_to_objective; hp; coins_collected; kills; damage_done; wall_perception_vec; coin_perception_vec; cakes_perception_vec; enemy_perception_vec; objective_perception_vec\n"
+
+		files_actions = sorted(glob.glob(glob_file_path + "/" + dim + "*/Traces_Actions*.txt"))
+		files_pad = sorted(glob.glob(glob_file_path + "/" + dim + "/Traces_" + dim + "*.txt"))
+		files_perceptor = sorted(glob.glob(glob_file_path + "/" + dim + "/Perceptor*.txt"))
+
+		csv_file = open("./Expanded_PAD_First_Study/" + dim + ".csv", "w+")
+
+
+		csv_file.write(header)
+
+
+		for i in range(len(files_actions)):
+
+			action_file = open(files_actions[i], "r")
+			pad_file = open(files_pad[i], "r")
+			perceptor_file = open(files_perceptor[i], "r")
+
+			actions = action_file.read().split('\n')
+			pads = pad_file.read().split('\n')
+			perceptions = perceptor_file.read().replace('_','').split('\n')
+
+			del perceptions[0]
+			del pads[-1]
+			del actions[-1]
+
+
+			player_id = files_actions[i].split('Level')[1][2:].replace('.txt', '')
+
+			level = files_actions[i].split('Actions_')[1][:6]
+
+	
+			for j in range(len(actions)):
+				# print(str(actions[j]))
+				# print(str(pads[j]))
+				line = str(player_id) + ';' + str(level) + ';' + actions[j] + ';' + str(pads[j]) + ';' + str(perceptions[j].replace(' \'','').replace('[\'','').replace('\']','').replace('\',', ';'))
+
+
+				csv_file.write(line)
+				csv_file.write('\n')
+
+		csv_file.close()
+
+
+
+
+
+
+
+
+
+
+def fuse_actions_and_affect(glob_file_path):
+
+
+	########################################
+	###			Under Construction
+	########################################
+
+	arousal_files_actions = sorted(glob.glob(glob_file_path + "/Arousal/Traces_Actions*.txt"))
+	arousal_files_pad =sorted(glob.glob(glob_file_path + "/Arousal/Traces_Arousal*.txt"))
+
+	print(len(arousal_files_actions))
+	print(len(arousal_files_pad))
+
+	fused_action_affect_list = []
+
+
+	for i in range(len(arousal_files_actions)):
+		actions = list(actions_to_string_translator(file_to_actions_translator(arousal_files_actions[i])))
+		pad_classes = get_pad_classes(arousal_files_pad[i])
+
+
+		size_dif = len(actions)/len(pad_classes)
+		counter = 0
+		remainder = 0
+		pad_new_list = []
+
+		for j in range(len(pad_classes)):
+
+			float_times = size_dif + remainder
+			times = math.trunc(float_times)
+			remainder = float_times - times
+			for _ in range(times):
+				pad_new_list.append(pad_classes[j])
+
+		while(len(actions)>len(pad_new_list)):
+			pad_new_list.append(pad_new_list[-1])
+
+		fused_action_affect = []
+
+		for k in range(len(actions)):
+			fused_action_affect.append(actions[k])
+			fused_action_affect.append(pad_new_list[k])
+
+		print("------------------")
+		print(fused_action_affect)
+		print("------------------")
+	
+		fused_action_affect_list.append(fused_action_affect)
+
+
+	return fused_action_affect_list, arousal_files_actions, arousal_files_pad
+
+
 
 def n_gram_hierarical_clustering(glob_file_path):
 
-	#WORKING ON IT
 
 	file_name_list = glob.glob(glob_file_path)
 
@@ -1136,8 +1320,14 @@ if __name__ == '__main__':
 	#get_action_lenght_distribution()
 
 
-	n_gram_hierarical_clustering("./First_Study/*/Traces_Actions_Level*.txt")
+	#n_gram_hierarical_clustering("./First_Study/*/Traces_Actions_Level*.txt")
 
+	#fuse_actions_and_affect("./First_Study")
+
+
+	#get_pad_expanded_to_action_lenght("./First_Study")
+
+	get_csv_dataset("./Expanded_PAD_First_Study")
 
 	#get_autoencoder("./First_Study/*/Traces_Actions_Level*.txt", 42, "all")
 
