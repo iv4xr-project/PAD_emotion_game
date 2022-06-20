@@ -1307,6 +1307,51 @@ def ascending_n_gram_compression(string_list, gram_number, commonality_treshline
 
 
 
+
+def transform_arrays_into_same_size(array_1, array_2):
+
+
+	if len(array_1) > len(array_2):
+		one_bigger = True
+		big_array = array_1
+		small_array = array_2
+	elif len(array_2) > len(array_1):
+		one_bigger = False
+		big_array = array_2
+		small_array = array_1
+	else: #They're the same size already
+		return array_1, array_2
+
+
+	size_dif = len(big_array)/len(small_array)
+	counter = 0
+	remainder = 0
+	expanded_small_array = []
+
+	for j in range(len(small_array)):
+
+		float_times = size_dif + remainder
+		times = math.trunc(float_times)
+		remainder = float_times - times
+		for _ in range(times):
+			expanded_small_array.append(small_array[j])
+
+	while(len(big_array)>len(expanded_small_array)):
+		expanded_small_array.append(expanded_small_array[-1])
+
+
+	if one_bigger:
+		return big_array, expanded_small_array
+	else:
+		return expanded_small_array, big_array
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
 	#levenshtein_afinity_clustering("./First_Study/*/Traces_Actions_Level3*.txt")
 	#parameter_based_afinity_clustering("./All_Trace_Evo/Persona_Evolution/Traces_Actions_Level3")
@@ -1327,7 +1372,20 @@ if __name__ == '__main__':
 
 	#get_pad_expanded_to_action_lenght("./First_Study")
 
-	get_csv_dataset("./Expanded_PAD_First_Study")
+	#get_csv_dataset("./Expanded_PAD_First_Study")
+
+
+	print(file_to_actions_translator("./First_Study/Pleasure/Traces_Actions_Level1_01-05-2021_19-23-58_257.txt"))
+
+
+	#array_1 = [1,2,3,4,5,6,7,8,9,10]
+	#array_2 = [0,1,1,0,1]
+
+
+	#print(transform_arrays_into_same_size(array_1, array_2))
+
+
+
 
 	#get_autoencoder("./First_Study/*/Traces_Actions_Level*.txt", 42, "all")
 

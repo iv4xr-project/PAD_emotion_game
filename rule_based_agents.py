@@ -3,6 +3,7 @@ import random
 import math
 import networkx as nx
 import matplotlib.pyplot as plt
+from scipy.spatial import distance
 
 
 
@@ -32,6 +33,9 @@ class BasicAgent:
 		self.prefered_direction = 0
 		self.previous_direction = 0
 		self.previous_action = 'n'
+		self.previous_function = None
+		self.subsequent_function_changes = 0
+		self.cannot_decide = 0
 		self.previous_pos_x = self.world.player.imagined_x
 		self.previous_pos_y = self.world.player.imagined_y
 		self.stuck_counter = 0
@@ -45,6 +49,9 @@ class BasicAgent:
 
 
 		self.passed_ticks = 0
+
+		self.previous_next_path = None
+		self.subsequent_same_next_path_ticks = 0
 
 		#self.visited_array = [0] * self.world.perceptor.num_directions
 
@@ -78,9 +85,82 @@ class BasicAgent:
 
 		self.tick_interval_to_update_graph = 20
 
+		self.positions_list = []
+
+		self.positions_list_size = 200
+
+		self.function_buffer_number = 0
+		self.function_in_buffer = None
+		self.max_function_buffer_number = 5
+
 		# self.nav_matrix_size = 30
 
 		# self.nav_matrix = np.zeros((self.nav_matrix_size, self.nav_matrix_size))
+
+
+
+	def check_if_stuck_or_looping(self, chosen_function):
+
+		#print("Chosen Function: ", chosen_function)
+
+		if self.cannot_decide > 0:
+			self.cannot_decide -= 1
+			return True
+
+		max_dist = 0
+		if len(self.positions_list) > self.positions_list_size - 1:
+			for spot in self.positions_list:
+				if self.euclidian_distance(spot, self.positions_list[0]) > max_dist:
+					max_dist = self.euclidian_distance(spot, self.positions_list[0])
+			if max_dist < 25:
+				print("STUCK")
+				self.positions_list = []
+				self.cannot_decide = 150
+				return True
+
+
+		# print("subsequent_same_next_path_ticks:", self.subsequent_same_next_path_ticks)
+		# if self.subsequent_same_next_path_ticks > 100:
+		# 	self.subsequent_same_next_path_ticks = 0
+		# 	self.subsequent_function_changes = 0
+		# 	self.cannot_decide = 150
+		# 	return True
+
+		# if self.previous_function != chosen_function and self.previous_function != None:
+		# 	self.subsequent_function_changes += 1
+		# else:
+		# 	self.subsequent_function_changes = 0
+		# print("self.subsequent_function_changes: ", self.subsequent_function_changes)
+		# if self.subsequent_function_changes >= 10:
+		# 	self.subsequent_same_next_path_ticks = 0
+		# 	self.subsequent_function_changes = 0
+		# 	self.cannot_decide = 150
+		# 	return True
+
+		# if len(self.current_path) > 0:
+		# 	print("Path: ", self.current_path[0])
+		# 	if self.current_path[0] == self.previous_next_path:
+		# 		self.subsequent_same_next_path_ticks += 1
+		# 	else:
+		# 		self.subsequent_same_next_path_ticks = 0
+
+		# if len(self.positions_list) > 100:
+		# 	if np.max(distance.cdist(self.positions_list[:-100], self.positions_list[:-2], "euclidean")) < 200:
+		# 		self.subsequent_same_next_path_ticks = 0
+		# 		self.subsequent_function_changes = 0
+		# 		self.cannot_decide = 50
+		# 		return True
+
+		return False
+
+	def unstuck(self, chosen_function):
+
+		action = random.choice(MOVE_LIST)
+
+		self.current_path = []
+
+		return action
+
 
 	def flower_in_view(self):
 
@@ -137,6 +217,8 @@ class BasicAgent:
 	def closest_enemy(self):
 
 		distance_closest_enemy = float('inf')
+		direction_closest_enemy = None
+		position_closest_enemy = None
 
 		for enemy in self.world.enemy_group:
 			if self.world.in_view(enemy):
@@ -281,8 +363,9 @@ class BasicAgent:
 				# else:
 				# 	print("Error in directions!!!")
 				# 	exit()
+		else:
+			action = self.explore()
 
-		self.update_nav_graph()
 		self.previous_pos_x = self.world.player.imagined_x
 		self.previous_pos_y = self.world.player.imagined_y
 		return action
@@ -303,6 +386,8 @@ class BasicAgent:
 			self.previous_action = action
 			return action
 
+
+
 		flower_x = self.world.flower_group.sprites()[0].rect.x
 		flower_y = self.world.flower_group.sprites()[0].rect.y
 
@@ -310,7 +395,10 @@ class BasicAgent:
 			self.get_closest_node_to_position(flower_x + self.world.player.imagined_x, flower_y + self.world.player.imagined_y)
 		except PositionError as er:
 			#print("Couldn't find a node near position: ", er.position)
-			return self.explore()
+			if self.world_explored:
+				return None
+			else:
+				return self.explore()
 
 	
 		
@@ -322,8 +410,10 @@ class BasicAgent:
 			self.chasing_cake = False
 			x = self.world.player.imagined_x + self.world.screen_width/2
 			y = self.world.player.imagined_y + self.world.screen_height/2
-			self.current_path = nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(x, y), target=self.get_closest_node_to_position(flower_x + self.world.player.imagined_x, flower_y + self.world.player.imagined_y))
-
+			try:
+				self.current_path = nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(x, y), target=self.get_closest_node_to_position(flower_x + self.world.player.imagined_x, flower_y + self.world.player.imagined_y))
+			except nx.exception.NetworkXNoPath:
+				return None
 		
 		if self.player_arrived_at_next_node():
 			del[self.current_path[0]]
@@ -334,8 +424,6 @@ class BasicAgent:
 
 
 		action = self.go_to_node(self.current_path[0])
-
-		self.update_nav_graph()
 
 		self.previous_pos_x = self.world.player.imagined_x
 		self.previous_pos_y = self.world.player.imagined_y
@@ -378,40 +466,45 @@ class BasicAgent:
 				action = random.choice(["a", "w"])
 			return action
 
+		if len(self.world.get_all_in_view(self.world.money_group)) == 0:
+			action = self.explore()
 
-		position, distance = self.get_closest_sprite_position_and_distance(self.world.money_group)
-
-		try:
-			self.get_closest_node_to_position(position[0], position[1])
-		except PositionError as er:
-			print("Couldn't find a node near position: ", er.position)
-			return self.explore()
-
-		# print("Current Position: ", self.world.player.imagined_x + self.world.screen_width/2, self.world.player.imagined_y + self.world.screen_height/2)
-		
-		# print("Closest Coin Position: ", position[0], position[1])
-		if self.chasing_coin == False or len(self.current_path) == 0:
-			self.chasing_coin = True
-			self.chasing_flower = False
-			self.chasing_enemy = False
-			self.chasing_cake = False
-			x = self.world.player.imagined_x + self.world.screen_width/2
-			y = self.world.player.imagined_y + self.world.screen_height/2
-			self.current_path = nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(x, y), target=self.get_closest_node_to_position(position[0], position[1]))
-
-		
-		if self.player_arrived_at_next_node():
-			del[self.current_path[0]]
-			if len(self.current_path) == 0:
-				self.chasing_coin = False
-				return random.choice(MOVE_LIST)
+		else:
 
 
+			position, distance = self.get_closest_sprite_position_and_distance(self.world.money_group)
 
-		action = self.go_to_node(self.current_path[0])
+			try:
+				self.get_closest_node_to_position(position[0], position[1])
+			except PositionError as er:
+				#print("Couldn't find a node near position: ", er.position)
+				return self.explore()
+
+			# print("Current Position: ", self.world.player.imagined_x + self.world.screen_width/2, self.world.player.imagined_y + self.world.screen_height/2)
+			
+			# print("Closest Coin Position: ", position[0], position[1])
+			if self.chasing_coin == False or len(self.current_path) == 0:
+				self.chasing_coin = True
+				self.chasing_flower = False
+				self.chasing_enemy = False
+				self.chasing_cake = False
+				x = self.world.player.imagined_x + self.world.screen_width/2
+				y = self.world.player.imagined_y + self.world.screen_height/2
+				try:
+					self.current_path = nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(x, y), target=self.get_closest_node_to_position(position[0], position[1]))
+				except nx.exception.NetworkXNoPath:
+					return self.explore()
+			
+			if self.player_arrived_at_next_node():
+				del[self.current_path[0]]
+				if len(self.current_path) == 0:
+					self.chasing_coin = False
+					return random.choice(MOVE_LIST)
 
 
-		self.update_nav_graph()
+
+			action = self.go_to_node(self.current_path[0])
+
 
 		self.previous_pos_x = self.world.player.imagined_x
 		self.previous_pos_y = self.world.player.imagined_y
@@ -437,37 +530,45 @@ class BasicAgent:
 				action = random.choice(["a", "w"])
 			return action
 
+		if len(self.world.get_all_in_view(self.world.food_group)) == 0:
+			action = self.explore()
 
-		position, distance = self.get_closest_sprite_position_and_distance(self.world.food_group)
-
-		try:
-			self.get_closest_node_to_position(position[0], position[1])
-		except PositionError as er:
-			#print("Couldn't find a node near position: ", er.position)
-			return self.explore()
-
-		if self.chasing_coin == False or len(self.current_path) == 0:
-			self.chasing_coin = True
-			self.chasing_flower = False
-			self.chasing_enemy = False
-			self.chasing_cake = False
-			x = self.world.player.imagined_x + self.world.screen_width/2
-			y = self.world.player.imagined_y + self.world.screen_height/2
-
-			self.current_path = nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(x, y), target=self.get_closest_node_to_position(position[0], position[1]))
-
-		
-		if self.player_arrived_at_next_node():
-			del[self.current_path[0]]
-			if len(self.current_path) == 0:
-				self.chasing_coin = False
-				return random.choice(MOVE_LIST)
+		else:
 
 
+			position, distance = self.get_closest_sprite_position_and_distance(self.world.food_group)
 
-		action = self.go_to_node(self.current_path[0])
+			try:
+				self.get_closest_node_to_position(position[0], position[1])
+			except PositionError as er:
+				#print("Couldn't find a node near position: ", er.position)
+				return self.explore()
 
-		self.update_nav_graph()
+			if self.chasing_coin == False or len(self.current_path) == 0:
+				self.chasing_coin = True
+				self.chasing_flower = False
+				self.chasing_enemy = False
+				self.chasing_cake = False
+				x = self.world.player.imagined_x + self.world.screen_width/2
+				y = self.world.player.imagined_y + self.world.screen_height/2
+				try:
+					self.current_path = nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(x, y), target=self.get_closest_node_to_position(position[0], position[1]))
+				except nx.exception.NetworkXNoPath:
+					return self.explore()
+			
+			if self.player_arrived_at_next_node():
+				del[self.current_path[0]]
+				if len(self.current_path) == 0:
+					self.chasing_coin = False
+					return random.choice(MOVE_LIST)
+
+
+
+			action = self.go_to_node(self.current_path[0])
+
+
+
+
 
 		self.previous_pos_x = self.world.player.imagined_x
 		self.previous_pos_y = self.world.player.imagined_y
@@ -923,8 +1024,7 @@ class BasicAgent:
 
 		if self.last_update_x == None:
 			self.create_graphs()
-		else:
-			self.update_nav_graph()
+
 
 		if len(self.current_path) == 0 or self.passed_ticks > self.tick_interval_to_update_graph:
 			self.passed_ticks = 0
@@ -933,7 +1033,10 @@ class BasicAgent:
 			if len(unknown_nodes) == 0:
 				print("Nothing left to explore!")
 				self.world_explored = 1
-				return self.go_to_flower()
+				if len(self.world.flower_group) >= 1:
+					return self.go_to_flower()
+				else:
+					return None
 			else:
 				chosen_node_to_explore = self.choose_node_to_explore(unknown_nodes)
 				x = self.world.player.imagined_x + self.world.screen_width/2
@@ -950,7 +1053,10 @@ class BasicAgent:
 				if len(unknown_nodes) == 0:
 					print("Nothing left to explore!")
 					self.world_explored = 1
-					return self.go_to_flower()
+					if len(self.world.flower_group) >= 1:
+						return self.go_to_flower()
+					else:
+						return None
 				else:
 					chosen_node_to_explore = self.choose_node_to_explore(unknown_nodes)
 					x = self.world.player.imagined_x + self.world.screen_width/2
@@ -979,230 +1085,6 @@ class RuleBasedAgent0(BasicAgent): #The Random
 	def getAction(self):
 		return random.choice(ACTION_LIST)
 
-
-
-class RuleBasedAgent1(BasicAgent): #The Experimental
-
-	def __init__(self, world):
-		BasicAgent.__init__(self, world)
-		
-		
-	def getAction(self):
-
-		if self.enemies_in_view() > 0:
-			return self.fight_closest()
-		if self.flower_in_view():
-			return self.explore()
-		return self.explore()
-
-
-
-class RuleBasedAgent2(BasicAgent): #Explores what is closest and goes to the flower when it is visible. Kills every enemy on sight
-
-	def __init__(self, world):
-		BasicAgent.__init__(self, world)
-
-	def choose_node_to_explore(self, node_list):
-
-		min_distance = float('inf')
-		min_node = None
-
-		for possible in node_list:
-			player_x = self.world.player.imagined_x + self.world.screen_width/2
-			player_y = self.world.player.imagined_y + self.world.screen_height/2
-			distance = len(nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(player_x, player_y), target=possible))
-
-			if distance < min_distance:
-				min_distance = distance
-				min_node = possible
-
-		return min_node
-		
-		
-	def getAction(self):
-		
-
-		if  self.enemies_in_view() > 0:
-			distance, _, _ = self.closest_enemy()
-			if distance < (self.world.screen_width/2 - 1.5*self.world.iterator_square.granularity):
-				return self.fight_closest()
-		if self.flower_in_view():
-			return self.go_to_flower()
-
-		return self.explore()
-
-
-
-
-
-
-
-class RuleBasedAgent3(BasicAgent): #Explores everything first and then goes to the flower. Kills everyone on sight
-
-	def __init__(self, world):
-		BasicAgent.__init__(self, world)
-
-	def choose_node_to_explore(self, node_list):
-
-		min_distance = float('inf')
-		min_node = None
-
-		for possible in node_list:
-			player_x = self.world.player.imagined_x + self.world.screen_width/2
-			player_y = self.world.player.imagined_y + self.world.screen_height/2
-			distance = len(nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(player_x, player_y), target=possible))
-
-			if distance < min_distance:
-				min_distance = distance
-				min_node = possible
-
-		return min_node
-		
-		
-	def getAction(self):
-		
-
-		if  self.enemies_in_view() > 0:
-			distance, _, _ = self.closest_enemy()
-			if distance < (self.world.screen_width/2 - 1.5*self.world.iterator_square.granularity):
-				#print("Fighting closest!")
-				return self.fight_closest()
-
-		if self.world_explored:
-			return self.go_to_flower()
-
-		try:
-			return self.explore()
-		except WorldExploredError as e:
-			return self.go_to_flower()
-
-
-
-class RuleBasedAgent4(BasicAgent): #Explores everything first and then goes to the flower. Kills everyone on sight. Collects all the coins
-
-	def __init__(self, world):
-		BasicAgent.__init__(self, world)
-
-	def choose_node_to_explore(self, node_list):
-
-		min_distance = float('inf')
-		min_node = None
-
-		for possible in node_list:
-			player_x = self.world.player.imagined_x + self.world.screen_width/2
-			player_y = self.world.player.imagined_y + self.world.screen_height/2
-			distance = len(nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(player_x, player_y), target=possible))
-
-			if distance < min_distance:
-				min_distance = distance
-				min_node = possible
-
-		return min_node
-		
-		
-	def getAction(self):
-		
-
-		if  self.enemies_in_view() > 0:
-			distance, _, _ = self.closest_enemy()
-			if distance < (self.world.screen_width/2 - 1.5*self.world.iterator_square.granularity):
-				#print("Fighting closest!")
-				return self.fight_closest()
-		if self.coins_in_view() > 0:
-			return self.go_to_closest_coin()
-		if self.world_explored:
-			return self.go_to_flower()
-
-		try:
-			return self.explore()
-		except WorldExploredError as e:
-			return self.go_to_flower()
-
-
-
-class RuleBasedAgent5(BasicAgent): #Explores everything first and then goes to the flower. Kills everyone on sight. Collects all the coins. Gets cakes when under 100 health
-
-	def __init__(self, world):
-		BasicAgent.__init__(self, world)
-
-	def choose_node_to_explore(self, node_list):
-
-		min_distance = float('inf')
-		min_node = None
-
-		for possible in node_list:
-			player_x = self.world.player.imagined_x + self.world.screen_width/2
-			player_y = self.world.player.imagined_y + self.world.screen_height/2
-			distance = len(nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(player_x, player_y), target=possible))
-
-			if distance < min_distance:
-				min_distance = distance
-				min_node = possible
-
-		return min_node
-		
-		
-	def getAction(self):
-		
-
-		if  self.enemies_in_view() > 0:
-			distance, _, _ = self.closest_enemy()
-			if distance < (self.world.screen_width/2 - 1.5*self.world.iterator_square.granularity):
-				#print("Fighting closest!")
-				return self.fight_closest()
-		if self.world.player.hp < self.world.player.max_hp and self.cakes_in_view() > 0:
-			return self.go_to_closest_cake()
-		if self.coins_in_view() > 0:
-			return self.go_to_closest_coin()
-		if self.world_explored:
-			return self.go_to_flower()
-
-		try:
-			return self.explore()
-		except WorldExploredError as e:
-			return self.go_to_flower()
-
-
-class RuleBasedAgent6(BasicAgent): #Goes to flower once found. Kills everyone on sight. Collects all the coins. Gets cakes when under 100 health
-
-	def __init__(self, world):
-		BasicAgent.__init__(self, world)
-
-	def choose_node_to_explore(self, node_list):
-
-		min_distance = float('inf')
-		min_node = None
-
-		for possible in node_list:
-			player_x = self.world.player.imagined_x + self.world.screen_width/2
-			player_y = self.world.player.imagined_y + self.world.screen_height/2
-			distance = len(nx.shortest_path(self.nav_graph, source = self.get_closest_node_to_position(player_x, player_y), target=possible))
-
-			if distance < min_distance:
-				min_distance = distance
-				min_node = possible
-
-		return min_node
-		
-		
-	def getAction(self):
-		
-
-		if  self.enemies_in_view() > 0:
-			distance, _, _ = self.closest_enemy()
-			if distance < (self.world.screen_width/2 - 1.5*self.world.iterator_square.granularity):
-				#print("Fighting closest!")
-				return self.fight_closest()
-		if self.flower_in_view():
-			return self.go_to_flower()
-		if self.world.player.hp < self.world.player.max_hp and self.cakes_in_view() > 0:
-			return self.go_to_closest_cake()
-		if self.coins_in_view() > 0:
-			return self.go_to_closest_coin()
-		try:
-			return self.explore()
-		except WorldExploredError as e:
-			return self.go_to_flower()
 
 
 
@@ -1392,61 +1274,98 @@ class ParameterAgent(BasicAgent): #Behaviour depends on parameters
 		
 	def getAction(self):
 
-		explore_preference = (self.explore_preference_par/self.max_parameter_value) * (1 - self.world_explored) 
+		#print(self.cannot_decide)
 
-		distance_closest_flower, closest_flower = self.closest_manhattan_sprite(self.world.flower_group)
-		flower_preference = self.flower_preference_par * (1/distance_closest_flower) + (self.world_explored * self.flower_preference_par)
+		if self.function_buffer_number > 0:
+			self.function_buffer_number -= 1
 
-		distance_closest_enemy, closest_enemy = self.closest_manhattan_sprite(self.world.enemy_group)
-		kill_preference = self.kill_preference_par * (1/distance_closest_enemy)
+			chosen_function = self.function_in_buffer
 
-		distance_closest_coin, closest_coin = self.closest_manhattan_sprite(self.world.money_group)
-		coin_preference = self.coin_preference_par * (1/distance_closest_coin)
-
-		distance_closest_cake, closest_cake = self.closest_manhattan_sprite(self.world.food_group)
-		cake_preference = (self.cake_preference_par * 1/distance_closest_cake) + (self.cake_health_influence_par*((self.world.player.max_hp - self.world.player.hp) / self.world.player.max_hp)*(1/distance_closest_cake))
-
-		randomness = self.randomness_par/self.max_parameter_value
-
-		pref_list = [explore_preference, flower_preference, kill_preference, coin_preference, cake_preference]
-
-		index_max = pref_list.index(max(pref_list))
-
-		is_max_list = [0]*len(pref_list)
-
-		is_max_list[index_max] = 1
+			
+		else:
 
 
-		explore_probabiliy = (1 - randomness) * (explore_preference * (is_max_list[0] + randomness))
+			explore_preference = (self.explore_preference_par/self.max_parameter_value) * (1 - self.world_explored) 
 
-		flower_probability = (1 - randomness) * (flower_preference * (is_max_list[1] + randomness)) 
+			distance_closest_flower, closest_flower = self.closest_manhattan_sprite(self.world.flower_group)
+			flower_preference = self.flower_preference_par * (1/distance_closest_flower) + (self.world_explored * self.flower_preference_par)
 
-		kill_probability = (1 - randomness) * (kill_preference * (is_max_list[2] + randomness))
+			distance_closest_enemy, closest_enemy = self.closest_manhattan_sprite(self.world.enemy_group)
+			kill_preference = self.kill_preference_par * (1/distance_closest_enemy)
 
-		coin_probability = (1 - randomness) * (coin_preference * (is_max_list[3] + randomness))
+			distance_closest_coin, closest_coin = self.closest_manhattan_sprite(self.world.money_group)
+			coin_preference = self.coin_preference_par * (1/distance_closest_coin)
 
-		cake_probability = (1 - randomness) * (cake_preference * (is_max_list[4] + randomness))
+			distance_closest_cake, closest_cake = self.closest_manhattan_sprite(self.world.food_group)
+			cake_preference = (self.cake_preference_par * 1/distance_closest_cake) + (self.cake_health_influence_par*((self.world.player.max_hp - self.world.player.hp) / self.world.player.max_hp)*(1/distance_closest_cake))
+
+			randomness = self.randomness_par/self.max_parameter_value
+
+			pref_list = [explore_preference, flower_preference, kill_preference, coin_preference, cake_preference]
+
+			index_max = pref_list.index(max(pref_list))
+
+			is_max_list = [0]*len(pref_list)
+
+			is_max_list[index_max] = 1
+
+
+			explore_probabiliy = (1 - randomness) * (explore_preference * (is_max_list[0] + randomness))
+
+			flower_probability = (1 - randomness) * (flower_preference * (is_max_list[1] + randomness)) 
+
+			kill_probability = (1 - randomness) * (kill_preference * (is_max_list[2] + randomness))
+
+			coin_probability = (1 - randomness) * (coin_preference * (is_max_list[3] + randomness))
+
+			cake_probability = (1 - randomness) * (cake_preference * (is_max_list[4] + randomness))
 
 
 
-		prob_list = [explore_probabiliy, flower_probability, kill_probability, coin_probability, cake_probability]
+			prob_list = [explore_probabiliy, flower_probability, kill_probability, coin_probability, cake_probability]
 
-		#print("Prob List: ", prob_list)
+			#print("Prob List: ", prob_list)
 
-		#this is done because the random.choices function can't deal with all probabilities being 0. When that happens, we decide that the agent should simply explore
-		if not any(prob_list):
-			prob_list[0]=1
-
-
-		function_list = [self.explore, self.go_to_flower, self.fight_closest, self.go_to_closest_coin, self.go_to_closest_cake]
+			#this is done because the random.choices function can't deal with all probabilities being 0. When that happens, we decide that the agent should simply explore
+			if not any(prob_list):
+				prob_list[0]=1
 
 
-		chosen_function = random.choices(function_list, weights = prob_list, k = 1)[0]
+			function_list = [self.explore, self.go_to_flower, self.fight_closest, self.go_to_closest_coin, self.go_to_closest_cake]
+
+
+			chosen_function = random.choices(function_list, weights = prob_list, k = 1)[0]
+
+			self.function_in_buffer = chosen_function
+			self.function_buffer_number = self.max_function_buffer_number 
+
+			#print(prob_list)
+
+			#print(chosen_function)
+
+		self.positions_list.append([self.world.player.imagined_x, self.world.player.imagined_x])
+
+		if len(self.positions_list) > self.positions_list_size:
+			self.positions_list.pop(0)
+
+		if self.check_if_stuck_or_looping(chosen_function):
+			if len(self.current_path) > 0:
+				self.previous_next_path = self.current_path[0]
+			return self.unstuck(chosen_function)
+
+		if len(self.current_path) > 0:
+			self.previous_next_path = self.current_path[0]
+
+
+			#print("Changes: ", self.subsequent_function_changes)
 
 		chosen_action = chosen_function()
 
+		self.update_nav_graph()
+
 		#print(chosen_function)
 		self.previous_action = chosen_action
+		self.previous_function = chosen_function
 
 		self.passed_ticks += 1
 

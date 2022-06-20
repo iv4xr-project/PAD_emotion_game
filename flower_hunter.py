@@ -1431,6 +1431,10 @@ def playing_routine(frame_rate, map_name, map_height, map_width, small_fontzy, m
 		world.update()
 		perceptor.update()
 		#perceptor.polygon_group.draw(world.screen)
+
+		# if len(perceptor.current_perceptions) > 0:
+		# 	print(perceptor.current_perceptions[23])
+
 		world.render()
 		
 		pygame.display.flip()
@@ -2662,7 +2666,7 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 	#variable to control the main loop
 	running = True
 
-	pos_file_path = "Traces/Bot_Position_" + map_name + "_" + date_time + ".txt"
+	pos_file_path = "Traces/Bot_Position_" + map_name.replace("/", "") + "_" + date_time + ".txt"
 
 	postextfile = open(pos_file_path, 'w')
 
@@ -2766,6 +2770,13 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 
 
 		action = agent.getAction()
+
+		if action == None:
+			print("World explored and no flower found or reachable...")
+			if perceptor_on:
+				return None, None, None
+			else:
+				return None, None
 
 		actions_to_save = [counter]
 
@@ -3247,10 +3258,11 @@ def main():
 #										                                    #
 #############################################################################
 
-	# num_directions = 100
+	# num_directions = 4
 
+	# frame_rate = 0.02
 
-	# map_name = "Level3"
+	# map_name = "Level2"
 
 	# chosen_dimension = "Arousal"
 
@@ -3312,18 +3324,19 @@ def main():
 #										                                                                        #
 #################################################################################################################
 
-	for num in range(8,9):
+	for map_path in sorted(glob.glob("./Maps/Generated_Maps/*.csv")):
 
-		print(num)
+		map_name = map_path[7:-4]
 
+		print(map_name)
 
-		map_name = "Level" + str(num)
+		#map_name = "Level1"
 
 		num_directions = 200 #Needs to be divisable by 8
 
 		agent_type = rule_based_agents.ParameterAgent
 
-		parameters = [80, 100, 30, 0, 60, 0, 60, 50, 50, 60]
+		parameters = [80, 100, 30, 20, 20, None, 60, None, None, 60]
 
 		play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
 

@@ -1,7 +1,7 @@
 from flower_hunter import *
 import time
-
-
+import trace_processor as tp
+import string
 
 
 
@@ -313,33 +313,58 @@ class Env():
 # The Main running function
 def main():
 
-	env = Env("Level3", saving_data = False)
+	env = Env("Level1", saving_data = False)
 
 	observation, info = env.reset()
 
 	init_time = time.time()
 
-	for i in range(20):
-		#print(i)
-		for j in range(100):
+	action_encoding = list(string.ascii_lowercase)[:len(env.action_space)]
 
-			#print(j)
+	actions = tp.actions_to_string_translator(tp.file_to_actions_translator("./First_Study/Pleasure/Traces_Actions_Level1_01-05-2021_19-23-58_257.txt"))
 
-			if random.randint(0,100)<30:
-				observation, reward, done, info = env.step(random.choice(env.action_space))
-			else:
-				observation, reward, done, info = env.step("d")
-			#env.render()
-			if done:
-				observation, info = env.reset()
+	for action_char in actions:
 
-		observation, info = env.reset()
+		#print(j)
+
+		action = env.action_space[action_encoding.index(action_char)]
+
+		observation, reward, done, info = env.step(action)
+		env.render()
+		if done:
+			observation, info = env.reset()
+
+	observation, info = env.reset()
 
 	final_time = time.time() - init_time
 
 	print("Done in: ", final_time)
 
 	env.close()
+
+
+
+	# for i in range(20):
+	# 	#print(i)
+	# 	for j in range(100):
+
+	# 		#print(j)
+
+	# 		if random.randint(0,100)<30:
+	# 			observation, reward, done, info = env.step(random.choice(env.action_space))
+	# 		else:
+	# 			observation, reward, done, info = env.step("d")
+	# 		#env.render()
+	# 		if done:
+	# 			observation, info = env.reset()
+
+	# 	observation, info = env.reset()
+
+	# final_time = time.time() - init_time
+
+	# print("Done in: ", final_time)
+
+	# env.close()
 
 
 
