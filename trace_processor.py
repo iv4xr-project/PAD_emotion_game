@@ -118,6 +118,19 @@ def file_to_actions_translator(file_location):
 	return new_actions
 
 
+
+def bot_file_to_actions_translator(file_location):
+
+	new_actions = []
+
+	f = open(file_location)
+	lines = f.readlines()
+
+	for line in lines:
+		splity = line.replace('\'', '').replace('[', '').replace(']', '').replace('\n', '').split(", ")
+		new_actions.append(splity[1:])
+	return new_actions
+
 def actions_to_file_translator(action_array, new_file_location = None):
 
 
@@ -1126,6 +1139,114 @@ def fuse_actions_and_affect(glob_file_path):
 
 
 
+
+
+
+def bot_n_gram_hierarical_clustering(glob_file_path):
+
+
+	file_name_list = glob.glob(glob_file_path)
+
+	string_list = []
+
+	for file in file_name_list:
+		actions = list(actions_to_string_translator(bot_file_to_actions_translator(file)))
+		string_list.append(actions)
+
+
+	n_gram_compressed_list, n_gram_meaning = ascending_n_gram_compression(string_list, 2, 1, 25)
+
+
+	# Cut the K longest elements, which are outliers
+	k = 0
+
+	len_list = []
+
+	for string in n_gram_compressed_list:
+
+		len_list.append(len(string))
+
+	for _ in range(k):
+		max_index = len_list.index(max(len_list))
+
+		del n_gram_compressed_list[max_index]
+		del file_name_list[max_index]
+		del len_list[max_index]
+
+
+	# len_list = []
+
+	# for string in n_gram_compressed_list:
+
+	# 	len_list.append(len(string))
+
+	# plt.hist(len_list, bins=100)
+
+	# plt.show()
+
+	np_name_list = np.asarray(file_name_list)
+
+	lev_dist = np.array([[(edlib.align(w1,w2)['editDistance'] - abs(len(w1)-len(w2)))for w1 in n_gram_compressed_list] for w2 in n_gram_compressed_list])
+
+
+	hierprop = AgglomerativeClustering(n_clusters = 3, affinity="precomputed", compute_full_tree = True, linkage = "complete", compute_distances = True)
+	hierprop.fit(lev_dist)
+
+
+
+	plot_dendrogram(hierprop, truncate_mode="level", p=100)
+	plt.xlabel("Number of points in node (or index of point if no parenthesis).")
+	plt.show()	
+
+	print(lev_dist)
+
+	counter = 0
+
+	#Delete previous clustering
+	folder = "./Clusters"
+	for filename in os.listdir(folder):
+		file_path = os.path.join(folder, filename)
+		try:
+			if os.path.isfile(file_path) or os.path.islink(file_path):
+				os.unlink(file_path)
+			elif os.path.isdir(file_path):
+				shutil.rmtree(file_path)
+		except Exception as e:
+			print('Failed to delete %s. Reason: %s' % (file_path, e))
+
+
+
+	for cluster_id in np.unique(hierprop.labels_):
+
+
+
+		print("\n\nCluster Number: ", counter)
+		print(np.nonzero(hierprop.labels_==cluster_id))
+
+		cluster = np.unique(np_name_list[np.nonzero(hierprop.labels_==cluster_id)])
+		folder_name = "./Clusters/" + str(counter) + "_____" + str(len(cluster))
+		os.mkdir(folder_name)
+		print("\n\nNumber of Traces in Cluster: ", len(cluster))
+
+
+		for clusty in cluster:
+			print("CLUSTYYYYY ", clusty)
+			shutil.copy(clusty, folder_name)
+			#Copying the images related to the traversal of the game. We need this to know what is going on
+			# clusty_id = clusty.split('/')[1][12:-4]
+			# images = glob.glob("./Figures/*/*/*"+clusty_id+"_DIMENSION_LOC.png")
+			# print("GLOB: ", images)
+			# for img in images:
+			# 	shutil.copy(img, folder_name)
+
+
+		counter += 1
+	
+
+
+
+
+
 def n_gram_hierarical_clustering(glob_file_path):
 
 
@@ -1134,7 +1255,7 @@ def n_gram_hierarical_clustering(glob_file_path):
 	string_list = []
 
 	for file in file_name_list:
-		actions = list(actions_to_string_translator(file_to_actions_translator(file)))
+		actions = list(actions_to_string_translator(file_to_actions_translator(file)))  #file_to_actions_translator
 		string_list.append(actions)
 
 
@@ -1365,17 +1486,17 @@ if __name__ == '__main__':
 	#get_action_lenght_distribution()
 
 
-	#n_gram_hierarical_clustering("./First_Study/*/Traces_Actions_Level*.txt")
+	#bot_n_gram_hierarical_clustering("./Traces/Bot_Actions_*.txt")
 
 	#fuse_actions_and_affect("./First_Study")
 
 
 	#get_pad_expanded_to_action_lenght("./First_Study")
 
-	#get_csv_dataset("./Expanded_PAD_First_Study")
+	get_csv_dataset("./Expanded_PAD_First_Study")
 
 
-	print(file_to_actions_translator("./First_Study/Pleasure/Traces_Actions_Level1_01-05-2021_19-23-58_257.txt"))
+	#print(file_to_actions_translator("./First_Study/Pleasure/Traces_Actions_Level1_01-05-2021_19-23-58_257.txt"))
 
 
 	#array_1 = [1,2,3,4,5,6,7,8,9,10]

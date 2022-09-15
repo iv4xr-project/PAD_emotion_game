@@ -64,7 +64,7 @@ class BottomUpGenerator(object):
 		self.small_col_matrix = None
 
 
-	def make_a_map(self, verbose = False):
+	def make_a_map(self, verbose = False, name = None):
 
 		path_between_player_and_flower = []
 
@@ -128,7 +128,7 @@ class BottomUpGenerator(object):
 		if verbose:
 			self.print_map()
 
-		self.save_as_csv()
+		self.save_as_csv(name = name)
 
 
 
@@ -382,15 +382,23 @@ class BottomUpGenerator(object):
 
 
 
-	def save_as_csv(self):
+	def save_as_csv(self, name):
 
 		rand_id = random.randint(1000000000, 9999999999)
 
-		file_path = self.save_folder + "BottomUpMap_" + str(self.canvas_size) + "_" + str(self.dungeon_density) + "_" + str(self.num_loops) + "_" + str(self.neighbour_depth) + "_" + str(self.neighbour_number_threshold) + "_" + str(self.coin_density) + "_" + str(self.health_density) + "_" + str(rand_id) +".csv"
+		if name == None:
+			file_path = self.save_folder + "BottomUpMap_" + str(self.canvas_size) + "_" + str(self.dungeon_density) + "_" + str(self.num_loops) + "_" + str(self.neighbour_depth) + "_" + str(self.neighbour_number_threshold) + "_" + str(self.coin_density) + "_" + str(self.health_density) + "_" + str(rand_id) +".csv"
+		else:
+			file_path = self.save_folder + "Map_" + str(name) +".csv"
+
 
 		while exists(file_path):
-			rand_id = random.randint(1000000000, 9999999999)
-			file_path = self.save_folder + "BottomUpMap_" + str(self.canvas_size) + "_" + str(self.dungeon_density) + "_" + str(self.num_loops) + "_" + str(self.neighbour_depth) + "_" + str(self.neighbour_number_threshold) + "_" + str(self.coin_density) + "_" + str(self.health_density) + "_" + str(rand_id) +".csv"
+			if name == None:
+				print("File already exists")
+				return
+			else:
+				rand_id = random.randint(1000000000, 9999999999)
+				file_path = self.save_folder + "BottomUpMap_" + str(self.canvas_size) + "_" + str(self.dungeon_density) + "_" + str(self.num_loops) + "_" + str(self.neighbour_depth) + "_" + str(self.neighbour_number_threshold) + "_" + str(self.coin_density) + "_" + str(self.health_density) + "_" + str(rand_id) +".csv"
 
 		f = open(file_path, 'w+')
 
@@ -402,10 +410,10 @@ class BottomUpGenerator(object):
 
 
 
-turly = BottomUpGenerator(100, 30, 3, 1, 3, 0.5, 0.5, 0.4, 10)
+turly = BottomUpGenerator(32, 30, 3, 1, 3, 0.5, 0.5, 0.4, 10)
 
-for i in range(500):
-	turly.make_a_map()
+for i in range(1):
+	turly.make_a_map(name = i, verbose = True)
 
 
 

@@ -2670,6 +2670,10 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 
 	postextfile = open(pos_file_path, 'w')
 
+	act_file_path = "Traces/Bot_Actions_" + map_name.replace("/", "") + "_" + date_time + ".txt"
+
+	acttextfile = open(act_file_path, 'w')
+
 	world = World(map_height, map_width, 20, map_name, small_fontzy)
 
 	player = Player(world.screen_width/2 -15, world.screen_height/2 -15, world)
@@ -2948,6 +2952,12 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 
 	postextfile.close()
 
+	for act_to_write in action_list:
+		acttextfile.write(str(act_to_write) + "\n")
+
+	acttextfile.close()
+
+
 	if perceptor_on:
 		return action_list, pos_file_path, perceptor.file_name
 	else:
@@ -2981,6 +2991,7 @@ def parameterized_agent_play(parameters, map_name, render, perceptor_on = False)
 	num_directions = 200 #Needs to be divisable by 8
 
 	agent_type = rule_based_agents.ParameterAgent
+
 
 	if perceptor_on:
 		action_list, pos_file_path, perceptor_file = play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = render, perceptor_on = perceptor_on)
@@ -3338,7 +3349,9 @@ def main():
 
 		parameters = [80, 100, 30, 20, 20, None, 60, None, None, 60]
 
-		play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+		date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
+
+		play_with_agent(agent_type, parameters, date_time + str(parameters).replace("[", "").replace("]", "").replace(",", "_").replace(" ", ""), frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
 
 
 #################################################################################################################
@@ -3369,7 +3382,50 @@ def main():
 	# play_and_predict_genetic_agent(trained_model_file, parameters, map_name, slice_number, True)
 
 
+#################################################################################################################
+#								                                   		                                        #
+#             Uncomment the following lines for playing with a set of agents over a set of levels               #
+#                                                                                                               #
+#										                                                                        #
+#################################################################################################################
 
+
+
+	# parameter_set = [[100, 100, 3, 96, 84, 52, 94, 99, 88, 91], [47, 1, 84, 10, 11, 30, 47, 3, 100, 51], [100, 52, 2, 99, 7, 70, 2, 0, 86, 83], [73, 61, 5, 97, 3, 66, 38, 26, 50, 70], [85, 80, 0, 78, 0, 8, 78, 55, 52, 50], [100, 99, 69, 74, 88, 31, 51, 75, 60, 44], [98, 94, 1, 6, 70, 89, 73, 41, 98, 99], [93, 80, 94, 53, 67, 41, 2, 86, 16, 45]]
+
+	# level_set = sorted(glob.glob("./Maps/Generated_Maps/*.csv"))
+
+	# for i in range(len(level_set)):
+	# 	level_set[i] = level_set[i].replace("./Maps/", "").replace(".csv", "")
+
+
+
+	# num_directions = 4
+
+	# agent_type = rule_based_agents.ParameterAgent
+
+	# # for num in range(20):
+	# # 	level_set.append("Level" + str(num+1))
+
+	# for parameters in parameter_set:
+	# 	for map_name in level_set:
+
+	# 		if parameter_set.index(parameters) < 1 or (parameter_set.index(parameters) == 1 and level_set.index(map_name) < 97):
+	# 			pass
+	# 		else:
+
+	# 			print("Paramters: ", parameters)
+	# 			print("Level: ", map_name)
+
+	# 			#exit()
+
+	# 			date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
+
+	# 			identi = "Bot" + str(parameter_set.index(parameters))
+
+	# 			play_with_agent(agent_type, parameters, identi, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = True)
+
+			
 
 
 

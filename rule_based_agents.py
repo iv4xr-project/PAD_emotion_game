@@ -87,7 +87,7 @@ class BasicAgent:
 
 		self.positions_list = []
 
-		self.positions_list_size = 200
+		self.positions_list_size = 300
 
 		self.function_buffer_number = 0
 		self.function_in_buffer = None
@@ -115,6 +115,10 @@ class BasicAgent:
 			if max_dist < 25:
 				print("STUCK")
 				self.positions_list = []
+				self.chasing_enemy = False
+				self.chasing_coin = False
+				self.chasing_flower = False
+				self.chasing_cake = False
 				self.cannot_decide = 150
 				return True
 
@@ -1031,7 +1035,7 @@ class BasicAgent:
 			unknown_nodes = self.get_unexplored_nodes()
 
 			if len(unknown_nodes) == 0:
-				print("Nothing left to explore!")
+				#print("Nothing left to explore!")
 				self.world_explored = 1
 				if len(self.world.flower_group) >= 1:
 					return self.go_to_flower()
@@ -1051,7 +1055,7 @@ class BasicAgent:
 				unknown_nodes = self.get_unexplored_nodes()
 
 				if len(unknown_nodes) == 0:
-					print("Nothing left to explore!")
+					#print("Nothing left to explore!")
 					self.world_explored = 1
 					if len(self.world.flower_group) >= 1:
 						return self.go_to_flower()
