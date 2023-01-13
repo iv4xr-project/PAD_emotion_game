@@ -38,6 +38,7 @@ from collections import Counter
 import trace_processor
 from joblib import dump, load
 from numpy import inf
+import sys
 
 
 
@@ -117,6 +118,9 @@ def new_get_processed_data(input_path, output_file, slice_number):
 def new_get_processed_data_no_output(input_path, slice_number):
 
 	my_data = np.genfromtxt(input_path, delimiter='_')
+
+	#print("My Data:", my_data)
+
 
 
 	seconds_since = my_data[:, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]]   #[12, 13, 14]
@@ -1049,7 +1053,36 @@ def new_leave_one_out(slice_number, balance_data):
 
 
 
-def test_forests(slice_number, balance_data):
+def predict_with_model(slice_number, trained_model_file, dim, file_location):
+
+ 
+	trained_model = load(trained_model_file)
+
+	data_list = sorted(glob.glob(file_location +"/Perceptor*.txt"))
+
+	#print(data_list)
+
+	prediction_list = []
+
+
+	for input_data in data_list:
+
+		my_data = new_get_processed_data_no_output(input_data, slice_number)
+
+		#print(my_data)
+
+		prediction = trained_model.predict(my_data)
+
+		prediction_list.append(prediction)
+
+
+	return prediction_list
+
+
+
+
+
+def test_forests(slice_number, balance_data, save = False):
 
 	dimensions = ["Arousal", "Pleasure", "Dominance"]
 
@@ -1733,24 +1766,40 @@ def main():
 	slice_number = 4
 	balance_data = True
 
-	#test_forests(slice_number, balance_data)
 
 
-	#behavioural_trainer()
+	if len(sys.argv) > 1:
 
-	print_images_folder("First_Study", slice_number)
+		if sys.argv[1] == "train_model":
+			test_forests(slice_number, balance_data)
+		elif sys.argv[1] == "predict_using_trained_model":
+			if sys.argv[2] == "arousal":
+				print(predict_with_model(slice_number, "trained_forest_Arousal.pkl", "Arousal", "./Traces"))
+			elif sys.argv[2] == "pleasure":
+				print(predict_with_model(slice_number, "trained_forest_Pleasure.pkl", "Pleasure", "./Traces"))
+			elif sys.argv[2] == "dominance":
+				print(predict_with_model(slice_number, "trained_forest_Dominance.pkl", "Dominance", "./Traces"))
+	else:
 
-	#get_behavioural_input(inputs)
+		#test_forests(slice_number, balance_data)
 
-	#trained_model_file = 'trained_forest_Pleasure.pkl'
+		predict_with_model(slice_number, "trained_forest_Arousal.pkl", "Arousal", "./Traces")
+
+		#behavioural_trainer()
+
+		#print_images_folder("First_Study", slice_number)
+
+		#get_behavioural_input(inputs)
+
+		#trained_model_file = 'trained_forest_Pleasure.pkl'
 
 
-	# trained_model = load(trained_model_file)
+		# trained_model = load(trained_model_file)
 
-	# behaviour_predict(inputs, trained_model)
+		# behaviour_predict(inputs, trained_model)
 
 
-	#print_fitness_evolution("Saved_Personas_60gen_5par/Persona_Evolution/Level1")
+		#print_fitness_evolution("Saved_Personas_60gen_5par/Persona_Evolution/Level1")
 
 
 if __name__=="__main__":

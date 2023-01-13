@@ -71,20 +71,21 @@ def csv_to_zero_and_ones_matrix(file_name):
 			elif letter == 'x':
 				line_array.append(0)
 			elif letter == "p":
+				player_pos = (line_count, column_count)
 				line_array.append(1)
 
 			column_count += 1
 		map_matrix.append(line_array)
 		line_count += 1
 
-	return map_matrix
+	return map_matrix, player_pos
 
 
 
 def load(file_name):
 
 	# To read different file formats, just implement a different csv_to_zero_and_ones_matrix function and change it here!
-	map_matrix = csv_to_zero_and_ones_matrix(file_name)
+	map_matrix, player_pos = csv_to_zero_and_ones_matrix(file_name)
 
 
 	aux_vertical_matrix = deepcopy(map_matrix)
@@ -161,13 +162,13 @@ def load(file_name):
 
 	printMapMatrix(join_matrix, "map_room_identification_testing.txt")
 
-	return join_matrix, groups
+	return join_matrix, groups, player_pos
 
 
 
 
 
-load("Level18")
+#load("Level18")
 
 
 

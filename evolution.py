@@ -234,9 +234,9 @@ if __name__ == '__main__':
 	map_name = "Level1"
 
 
-	#run_evolution_exemplars(population_size, truncation_percentage, mutation_rate, max_generations, map_name)
+	run_evolution_exemplars(population_size, truncation_percentage, mutation_rate, max_generations, map_name)
 
-	run_evolution_all_traces(population_size, truncation_percentage, mutation_rate, max_generations)
+	#run_evolution_all_traces(population_size, truncation_percentage, mutation_rate, max_generations)
 
 
 

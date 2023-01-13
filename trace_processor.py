@@ -348,7 +348,7 @@ def save_lev_similarity_matrix(glob_file_path):
 	words = np.asarray(words) #So that indexing with a list will work
 	lev_similarity = -1*np.array([[levenshtein_distance_between_traces(w1,w2) for w1 in words] for w2 in words])
 
-	with open('lev_similarity_matrix_Level_3.pkl', 'wb') as file:
+	with open('lev_similarity_matrix_Level_1.pkl', 'wb') as file:
 		# A new file will be created
 		pickle.dump(lev_similarity, file)
 
@@ -1259,7 +1259,7 @@ def n_gram_hierarical_clustering(glob_file_path):
 		string_list.append(actions)
 
 
-	n_gram_compressed_list, n_gram_meaning = ascending_n_gram_compression(string_list, 2, 1, 80)
+	n_gram_compressed_list, n_gram_meaning = ascending_n_gram_compression(string_list, 2, 1, 1)
 
 
 	# Cut the K longest elements, which are outliers
@@ -1474,11 +1474,12 @@ def transform_arrays_into_same_size(array_1, array_2):
 
 
 if __name__ == '__main__':
-	#levenshtein_afinity_clustering("./First_Study/*/Traces_Actions_Level3*.txt")
+	#levenshtein_afinity_clustering("./First_Study/*/Traces_Actions_Level1*.txt")
+
 	#parameter_based_afinity_clustering("./All_Trace_Evo/Persona_Evolution/Traces_Actions_Level3")
 
 
-	#save_lev_similarity_matrix("./First_Study/*/Traces_Actions_Level3*.txt")
+	#save_lev_similarity_matrix("./First_Study/*/Traces_Actions_Level1*.txt")
 
 
 	#levenshtein_hierarchical_clustering("./First_Study/*/Traces_Actions_Level1*.txt", "1")
@@ -1493,7 +1494,7 @@ if __name__ == '__main__':
 
 	#get_pad_expanded_to_action_lenght("./First_Study")
 
-	get_csv_dataset("./Expanded_PAD_First_Study")
+	#get_csv_dataset("./Expanded_PAD_First_Study")
 
 
 	#print(file_to_actions_translator("./First_Study/Pleasure/Traces_Actions_Level1_01-05-2021_19-23-58_257.txt"))
@@ -1505,7 +1506,7 @@ if __name__ == '__main__':
 
 	#print(transform_arrays_into_same_size(array_1, array_2))
 
-
+	n_gram_hierarical_clustering("./First_Study/*/Traces_Actions_Level1*.txt")
 
 
 	#get_autoencoder("./First_Study/*/Traces_Actions_Level*.txt", 42, "all")

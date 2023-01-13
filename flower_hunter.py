@@ -3045,7 +3045,7 @@ def main():
 	map_height = 600
 	map_width = 600
 
-	frame_rate = 0.0
+	frame_rate = 0.02
 
 	big_fontzy = pygame.font.Font(os.path.join("Fonts", 'MacondoSwashCaps.ttf'), 62)
 	medium_fontzy = pygame.font.Font(os.path.join("Fonts", 'MacondoSwashCaps.ttf'), 32)
@@ -3335,23 +3335,23 @@ def main():
 #										                                                                        #
 #################################################################################################################
 
-	for map_path in sorted(glob.glob("./Maps/Generated_Maps/*.csv")):
+	# for map_path in sorted(glob.glob("./Maps/Generated_Maps/*.csv")):
 
-		map_name = map_path[7:-4]
+	# 	map_name = map_path[7:-4]
 
-		print(map_name)
+	# 	print(map_name)
 
-		#map_name = "Level1"
+	# 	#map_name = "Level1"
 
-		num_directions = 200 #Needs to be divisable by 8
+	# 	num_directions = 200 #Needs to be divisable by 8
 
-		agent_type = rule_based_agents.ParameterAgent
+	# 	agent_type = rule_based_agents.ParameterAgent
 
-		parameters = [80, 100, 30, 20, 20, None, 60, None, None, 60]
+	# 	parameters = [80, 100, 30, 20, 20, None, 60, None, None, 60]
 
-		date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
+	# 	date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
 
-		play_with_agent(agent_type, parameters, date_time + str(parameters).replace("[", "").replace("]", "").replace(",", "_").replace(" ", ""), frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
+	# 	play_with_agent(agent_type, parameters, date_time + str(parameters).replace("[", "").replace("]", "").replace(",", "_").replace(" ", ""), frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
 
 
 #################################################################################################################
@@ -3391,39 +3391,39 @@ def main():
 
 
 
-	# parameter_set = [[100, 100, 3, 96, 84, 52, 94, 99, 88, 91], [47, 1, 84, 10, 11, 30, 47, 3, 100, 51], [100, 52, 2, 99, 7, 70, 2, 0, 86, 83], [73, 61, 5, 97, 3, 66, 38, 26, 50, 70], [85, 80, 0, 78, 0, 8, 78, 55, 52, 50], [100, 99, 69, 74, 88, 31, 51, 75, 60, 44], [98, 94, 1, 6, 70, 89, 73, 41, 98, 99], [93, 80, 94, 53, 67, 41, 2, 86, 16, 45]]
+	parameter_set = [[100, 100, 3, 96, 84, 52, 94, 99, 88, 91], [47, 1, 84, 10, 11, 30, 47, 3, 100, 51], [100, 52, 2, 99, 7, 70, 2, 0, 86, 83], [73, 61, 5, 97, 3, 66, 38, 26, 50, 70], [85, 80, 0, 78, 0, 8, 78, 55, 52, 50], [100, 99, 69, 74, 88, 31, 51, 75, 60, 44], [98, 94, 1, 6, 70, 89, 73, 41, 98, 99], [93, 80, 94, 53, 67, 41, 2, 86, 16, 45]]
 
-	# level_set = sorted(glob.glob("./Maps/Generated_Maps/*.csv"))
+	level_set = sorted(glob.glob("./Maps/Level[123].csv"))
 
-	# for i in range(len(level_set)):
-	# 	level_set[i] = level_set[i].replace("./Maps/", "").replace(".csv", "")
+	for i in range(len(level_set)):
+		level_set[i] = level_set[i].replace("./Maps/", "").replace(".csv", "")
 
+	time.sleep(5)
 
+	num_directions = 4
 
-	# num_directions = 4
+	agent_type = rule_based_agents.ParameterAgent
 
-	# agent_type = rule_based_agents.ParameterAgent
+	# for num in range(20):
+	# 	level_set.append("Level" + str(num+1))
+	for map_name in level_set:
+		for parameters in parameter_set:
+		
 
-	# # for num in range(20):
-	# # 	level_set.append("Level" + str(num+1))
+			if parameter_set.index(parameters) < 1 or (parameter_set.index(parameters) == 1 and level_set.index(map_name) < 97):
+				pass
+			else:
 
-	# for parameters in parameter_set:
-	# 	for map_name in level_set:
+				print("Paramters: ", parameters)
+				print("Level: ", map_name)
 
-	# 		if parameter_set.index(parameters) < 1 or (parameter_set.index(parameters) == 1 and level_set.index(map_name) < 97):
-	# 			pass
-	# 		else:
+				#exit()
 
-	# 			print("Paramters: ", parameters)
-	# 			print("Level: ", map_name)
+				date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
 
-	# 			#exit()
+				identi = "Bot" + str(parameter_set.index(parameters))
 
-	# 			date_time = datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + "_" + str(random.randint(0, 1000))
-
-	# 			identi = "Bot" + str(parameter_set.index(parameters))
-
-	# 			play_with_agent(agent_type, parameters, identi, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = True)
+				play_with_agent(agent_type, parameters, identi, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = True)
 
 			
 

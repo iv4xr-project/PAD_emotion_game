@@ -13,30 +13,163 @@ It also places coins and enemies along the way
 
 """
 
+class MapGenerator(object):
+
+	floor_char = '.'
+	empty_char = '_'
+	wall_char = 'x'
+	player_char = 'p'
+	enemy_char = 'f'
+	health_char = 'r'
+	coin_char = 'm'
+	objective_char = '0'
+
+	save_folder = "./Maps/Generated_Maps/"
+
+
+
+	def print_map(self):
+
+		print("--------MAP--------")
+
+		for line in self.map:
+			for char in line:
+				print(char)
+			print()
+
+
+
+	def initialize_empty_map(self):
+
+		for _ in range(self.canvas_size):
+			line = ['_']*self.canvas_size
+			self.map.append(line)
 
 
 
 
-class TurtleGenerator(object):
+
+
+class TurtleGenerator(MapGenerator):
 
 	directions = [(-1,0), (1,0), (0,1), (0,-1)]
 
-	def __init__(self, canvas_size, rotation_frequency):
+	def __init__(self, canvas_size, total_lenght, rotation_frequency, room_frequency, num_rooms, corridor_min_width, corridor_max_width, room_min_size, room_max_size):
 
 		self.map = []
-		for _ in range(canvas_size):
-			line = ['_']*canvas_size
-			self.map.append(line)
-		print(self.map)
+		self.canvas_size = canvas_size
+		self.total_lenght = total_lenght
+		self.rotation_frequency = rotation_frequency
+		self.room_frequency = room_frequency
+		self.num_rooms = num_rooms
+		self.corridor_min_width = corridor_min_width
+		self.corridor_max_width = corridor_max_width
+		self.room_min_size = room_min_size
+		self.room_max_size = room_max_size
+		self.initialize_empty_map()
+
+
+
+	def make_a_map(self):
+
+		turtle = [random.randint(2, self.canvas_size - 2 - self.corridor_max_width), random.randint(2, self.canvas_size - 2 - self.corridor_max_width)]
+		new_direction = random.choice(self.directions)
+		direction = new_direction
+		corridor_width = random.randint(self.corridor_min_width, self.corridor_max_width)
+		rooms_made = 0
+		current_lenght = 0
+
+		while((rooms_made < self.num_rooms) and current_lenght < self.total_lenght):
+
+			if random.uniform(0.0, 1.0) < self.rotation_frequency:
+				new_direction = random.choice(self.directions)
+				corridor_width = random.randint(self.corridor_min_width, self.corridor_max_width)
+
+			# if direction[0] == new_direction[0] and direction[1] == new_direction[1]:
+			# 	 pass
+			# else:
+
+			direction = new_direction
+
+
+			new_turtle_x = turtle[0] + direction[0]
+			new_turtle_y = turtle[1] + direction[1]
+
+			change_counter = 0
+			while((new_turtle_x < 2) or (new_turtle_x >= self.canvas_size - 2 - self.corridor_max_width) or (new_turtle_y < 2) or (new_turtle_y >= self.canvas_size - 2 - self.corridor_max_width)):
+
+				direction = random.choice(self.directions)
+
+				new_turtle_x = turtle[0] + direction[0]
+				new_turtle_y = turtle[1] + direction[1]
+
+				change_counter +=1
+
+				if change_counter > 100:
+					print("Couldn't find a viable directional option!")
+					exit()
+
+			turtle[0] = new_turtle_x
+			turtle[1] = new_turtle_y
+
+			self.map[turtle[0]][turtle[1]] = self.floor_char
+
+			if direction[0] == 0:
+				for i in range(corridor_width):
+					self.map[turtle[0] + 1 + i][turtle[1]] = self.floor_char
+					if self.map[turtle[0] + corridor_width + 1][turtle[1]] == self.floor_char:
+						pass
+					else:
+						self.map[turtle[0] + corridor_width + 1][turtle[1]]  = self.wall_char
+					if self.map[turtle[0] - 1][turtle[1]]  == self.floor_char:
+						pass
+					else:
+						self.map[turtle[0] - 1][turtle[1]] = self.wall_char
+			elif direction[1] == 0:
+				for i in range(corridor_width):
+					self.map[turtle[0]][turtle[1] + 1 + i] = self.floor_char
+					if self.map[turtle[0]][turtle[1] + corridor_width + 1] == self.floor_char:
+						pass
+					else:
+						self.map[turtle[0]][turtle[1] + corridor_width + 1]  = self.wall_char
+					if self.map[turtle[0]][turtle[1] - 1]  == self.floor_char:
+						pass
+					else:
+						self.map[turtle[0]][turtle[1] - 1] = self.wall_char
+
+			current_lenght += 1
+
+
+
+		# Wall it up
+
+		for i in range(1, len(self.map) - 1):
+			for j in range(1, len(self.map[0]) - 1):
+
+				if self.map[i][j] == self.empty_char:
+					if self.map[i+1][j] == self.floor_char or self.map[i+1][j+1] == self.floor_char or self.map[i+1][j-1] == self.floor_char or self.map[i-1][j+1] == self.floor_char or self.map[i-1][j-1] == self.floor_char or self.map[i-1][j] == self.floor_char or self.map[i][j-1] == self.floor_char or self.map[i][j+1] == self.floor_char:
+						self.map[i][j] = self.wall_char
 
 
 
 
-class TopDownGenerator(object):
+
+
+
+
+
+
+
+
+
+
+
+
+class TopDownGenerator(MapGenerator):
 	pass
 
 
-class BottomUpGenerator(object):
+class BottomUpGenerator(MapGenerator):
 
 	floor_char = '.'
 	empty_char = '_'
@@ -129,26 +262,6 @@ class BottomUpGenerator(object):
 			self.print_map()
 
 		self.save_as_csv(name = name)
-
-
-
-	def print_map(self):
-
-		print("--------MAP--------")
-
-		for line in self.map:
-			for char in line:
-				print(char, end = '')
-			print()
-
-
-
-	def initialize_empty_map(self):
-
-		for _ in range(self.canvas_size):
-			line = ['_']*self.canvas_size
-			self.map.append(line)
-
 
 
 
@@ -410,10 +523,39 @@ class BottomUpGenerator(object):
 
 
 
-turly = BottomUpGenerator(32, 30, 3, 1, 3, 0.5, 0.5, 0.4, 10)
+##############################################
+###	Code to make celular automata maps
+##############################################
 
-for i in range(1):
-	turly.make_a_map(name = i, verbose = True)
+# turly = BottomUpGenerator(32, 30, 3, 1, 3, 0.5, 0.5, 0.4, 10)
+
+# for i in range(1):
+# 	turly.make_a_map(name = i, verbose = True)
+
+
+##############################################
+###	Code to make room and corridors maps
+##############################################
+
+
+mappy_maker = TurtleGenerator(150, 800, 0.1, 0.1, 5, 3, 4, 6, 20)
+
+mappy_maker.make_a_map()
+
+mappy_maker.print_map()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

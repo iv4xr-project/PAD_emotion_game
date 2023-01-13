@@ -2647,7 +2647,7 @@ def play_with_pre_trained_model(trained_model_file, date_time, frame_rate, map_n
 
 
 
-def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = True):
+def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions, render = True, perceptor_on = False):
 
 
 	#variable to control the main loop
@@ -2662,9 +2662,10 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 	player = Player(world.screen_width/2 -15, world.screen_height/2 -15, world)
 	world.player = player
 
-	#perceptor = Perceptor(world, math.inf, date_time, map_name, num_directions)
+	if perceptor_on:
+		perceptor = Perceptor(world, math.inf, date_time, map_name, num_directions)
 
-	#world.perceptor = perceptor
+		world.perceptor = perceptor
 
 	agent = agent_type(world, parameters)
 
@@ -2705,11 +2706,13 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 
 
 		world.update()
-		#perceptor.update()
+		if perceptor_on:
+			perceptor.update()
 
 		if render:
 			world.render()
-			#perceptor.polygon_group.draw(world.screen)
+			# if perceptor_on:
+			# 	perceptor.polygon_group.draw(world.screen)
 			pygame.display.flip()
 
 
@@ -2762,7 +2765,8 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 ###########
 ############  The model logic needs to be here
 		
-		#perceptions = perceptor.current_perceptions
+		if perceptor_on:
+			perceptions = perceptor.current_perceptions
 
 
 		action = agent.getAction()
@@ -2931,8 +2935,8 @@ def play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map
 		counter += 1
 
 
-
-	#perceptor.write_to_file()
+	if perceptor_on:	
+		perceptor.write_to_file()
 
 	for pos_to_write in world.pos_to_write:
 		postextfile.write(pos_to_write)
@@ -3299,7 +3303,7 @@ def main():
 
 	agent_type = rule_based_agents.ParameterAgent
 
-	parameters = [10, 5, 8, 0, 6, 0, 6, 8, 5]
+	parameters = [10, 5, 8, 0, 6, 0, 6, 8, 5, 10]
 
 	play_with_agent(agent_type, parameters, date_time, frame_rate, map_name, map_height, map_width, small_fontzy, medium_fontzy, big_fontzy, num_directions)
 
