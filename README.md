@@ -1,6 +1,10 @@
 # PAD_emotion_game
 This repository contains a simple 2-D game used to train emotional agents along with the code necessary for generating such agents. In this repository can be found the code for the game (infinite_game.py), the code for training a predictive machine learning model (predictor.py), the code for deplying AI agents on said game (rule_based_agents.py) and the data collected from the fist user study conducted using this game and continuous annotation of the 3 dimensions of PAD model of emotion (First_Study folder).
 
+## Installing Dependencies 
+
+To install the required dependencies, please write on the terminal "pip install -r requirements.txt"
+
 ## Running the Game
  
 To run the game, run the "infinite_game.py" file. One way to do so is to write "python3 infinite_game.py" on the command line while in the project's directory.
